@@ -9,7 +9,7 @@ from src.pokemon import PokemonFactory, StatusEffect
 
 factory = PokemonFactory("pokemon.json")
 
-list_pokemons = ["snorlax", "caterpie", "jolteon", "mewtwo", "onix"]
+list_pokemons = ["caterpie", "jolteon", "mewtwo", "snorlax", "onix"]
 list_pokeballs = ["pokeball"]
 list_hp = np.arange(0, 1.1, 0.1)  # 0 a 1 con paso de 0.1
 
@@ -43,6 +43,14 @@ import numpy as np
 pokemons = list_pokemons
 pokeballs = list_pokeballs
 
+colores_pokemon = {
+    "caterpie": "green",
+    "jolteon": "yellow",
+    "mewtwo": "purple",
+    "snorlax": "blue",
+    "onix": "gray"
+}
+
 plt.figure(figsize=(10,6))
 
 for pokemon in pokemons:
@@ -51,11 +59,15 @@ for pokemon in pokemons:
         for hp in list_hp:
             frec_true, _ = dpokemon[pokemon][pokeball][hp]
             frec_values.append(frec_true)
-        plt.plot(list_hp, frec_values, marker='o', label=f"{pokemon} - {pokeball}")
+        plt.plot(list_hp,
+                 frec_values,
+                 marker='o',
+                 color=colores_pokemon[pokemon],  # Color según Pokémon
+                 label=f"{pokemon} - {pokeball}")
 
-plt.xlabel("HP (proporción)")
-plt.ylabel("Frecuencia relativa de captura (frec_true)")
-plt.title("Frecuencia de captura vs HP para cada Pokémon y Pokéball")
+plt.xlabel("HP%")
+plt.ylabel("Frecuencia relativa de captura")
+# plt.title("Frecuencia de captura vs HP para cada Pokémon y Pokéball")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()

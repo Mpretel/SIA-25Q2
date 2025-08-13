@@ -9,15 +9,15 @@ from src.pokemon import PokemonFactory, StatusEffect
 
 factory = PokemonFactory("pokemon.json")
 
-list_pokemons = ["caterpie"]
+list_pokemons = ["mewtwo"]
 list_pokeballs = ["pokeball", "ultraball", "fastball", "heavyball"]
 list_salud = [StatusEffect.NONE, StatusEffect.BURN, StatusEffect.POISON, StatusEffect.FREEZE, StatusEffect.SLEEP, StatusEffect.PARALYSIS]
 list_salud_names = ["none", "burn", "poison", "freeze", "sleep", "paralysis"]
 
 
 lvl = 100 # 1 a 100
-hp = 0.00000000000001 # 0 a 1
-nit = 100
+hp = 1E-10 # 0 a 1
+nit = 10000
 
 dpokemon = {}
 
@@ -41,7 +41,7 @@ for pokemon in list_pokemons:
 import matplotlib.pyplot as plt
 import numpy as np
 
-pokemon = "caterpie"  # fijamos Pokémon, por ejemplo
+pokemon = list_pokemons[0]  # fijamos Pokémon, por ejemplo
 pokeballs = ["pokeball", "ultraball", "fastball", "heavyball"]
 
 x = np.arange(len(pokeballs))  # posición de cada tipo de pokeball
@@ -71,7 +71,7 @@ for i, salud in enumerate(list_salud_names):
 ax.set_xticks(x + width*(len(list_salud_names)/2 - 0.5))
 ax.set_xticklabels(pokeballs)
 ax.set_ylabel("Frecuencia relativa de captura")
-ax.set_title(f"Frecuencia de captura de {pokemon} por tipo de Pokéball y estado de salud")
+ax.set_title(f"{pokemon}")
 ax.legend(title="Estado de salud")
 plt.tight_layout()
 plt.show()

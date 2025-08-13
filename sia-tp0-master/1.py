@@ -8,10 +8,6 @@ from src.catching import attempt_catch
 from src.pokemon import PokemonFactory, StatusEffect
 
 factory = PokemonFactory("pokemon.json")
-with open(f"{sys.argv[1]}", "r") as f:
-    config = json.load(f)
-    ball = config["pokeball"]
-    pokemon = factory.create(config["pokemon"], 100, StatusEffect.NONE, 1)
 
 list_pokemons = ["caterpie", "jolteon", "mewtwo", "snorlax", "onix"]
 list_pokeballs = ["pokeball", "ultraball", "fastball", "heavyball"]
@@ -20,7 +16,7 @@ dpokemon = {}
 
 lvl = 100 # 1 a 100
 hp = 1 # 0 a 1
-nit = 100
+nit = 10000
 
 for pokemon in list_pokemons:
     dpokeball = {}
@@ -38,55 +34,45 @@ for pokemon in list_pokemons:
         print(f"{pokemon} con {pokeball} -> {frec_true:.2%} Proba, {proba:.4f}")
 
 
-# Colores por Pokémon
-colores_pokemon = {
-    "caterpie": "green",
-    "jolteon": "yellow",
-    "mewtwo": "purple",
-    "snorlax": "blue",
-    "onix": "gray"
+# Colores por pokeball
+colores_pokeball = {
+    "pokeball": "red",
+    "ultraball": "gold",
+    "fastball": "orange",
+    "heavyball": "black"
 }
 
-# Texturas por pokeball
-texturas_pokeball = {
-    "pokeball": "/",
-    "ultraball": "\\",
-    "fastball": "|",
-    "heavyball": "-"
-}
+n_pokemons = len(list_pokemons)
+n_pokeballs = len(list_pokeballs)
 
-labels = []
-frecuencias = []
-colores = []
-texturas = []
-
-for pokemon in list_pokemons:
-    for pokeball in list_pokeballs:
-        key = (pokemon, pokeball)
-        frec_true, _ = dpokemon[key]
-        labels.append(f"{pokemon}\n{pokeball}")
-        frecuencias.append(frec_true)
-        colores.append(colores_pokemon[pokemon])
-        texturas.append(texturas_pokeball[pokeball])
-
-x = np.arange(len(labels))
+# Posiciones base para cada Pokémon
+x = np.arange(n_pokemons)
+width = 0.18  # ancho de cada barra
 
 plt.figure(figsize=(12,6))
 
-bars = []
-for i in range(len(labels)):
-    bar = plt.bar(x[i], frecuencias[i], color=colores[i], hatch=texturas[i])
-    bars.append(bar)
+# Dibujar barras agrupadas
+for i, pokeball in enumerate(list_pokeballs):
+    frecs = [dpokemon[(pokemon, pokeball)][0] for pokemon in list_pokemons]
+    plt.bar(x + i*width - (width*(n_pokeballs-1)/2),
+            frecs,
+            width=width,
+            color=colores_pokeball[pokeball],
+            label=pokeball)
 
-plt.xticks(x, labels, rotation=45, ha='right')
-plt.ylabel("Frecuencia relativa de captura (frec_true)")
-plt.title("Frecuencia de captura para cada Pokémon y tipo de Pokéball")
+# Etiquetas y títulos
+plt.xticks(x, list_pokemons)
+plt.ylabel("Frecuencia relativa de captura")
+#plt.title("Frecuencia de captura por Pokémon y tipo de Pokéball")
+plt.legend(title="Pokéball")
 
-for bar, freq in zip(bars, frecuencias):
-    # bar es un container, extraigo la barra
-    rect = bar.patches[0]
-    height = rect.get_height()
-    plt.text(rect.get_x() + rect.get_width()/2, height + 0.01, f"{freq:.2}", ha='center', va='bottom', fontsize=8)
+# Etiquetas encima de las barras
+for i, pokeball in enumerate(list_pokeballs):
+    frecs = [dpokemon[(pokemon, pokeball)][0] for pokemon in list_pokemons]
+    for j, freq in enumerate(frecs):
+        xpos = j + i*width - (width*(n_pokeballs-1)/2)
+        plt.text(xpos, freq + 0.01, f"{freq:.2}", 
+                 ha='center', va='bottom', fontsize=8)
 
 plt.tight_layout()
 plt.show()
@@ -131,8 +117,8 @@ for i, pokemon in enumerate(pokemons):
 # Etiquetas y leyenda
 ax.set_xticks(x + width*2)  # centrar los grupos en el eje x
 ax.set_xticklabels(pokeballs)
-ax.set_ylabel("Frecuencia relativa normalizada\nrespecto a Pokeball básica")
-ax.set_title("Comparación de efectividad de Pokéballs normalizada por Pokémon")
+ax.set_ylabel("Frecuencia relativa normalizada\nrespecto a la pokebola básica")
+#ax.set_title("Comparación de efectividad de Pokéballs normalizada por Pokémon")
 ax.axhline(1, color='black', linestyle='--', linewidth=0.7)  # línea base en 1
 
 ax.legend(title="Pokémon")

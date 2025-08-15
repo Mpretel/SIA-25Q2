@@ -51,7 +51,7 @@ width = 0.18  # ancho de cada barra
 
 plt.figure(figsize=(12,6))
 
-# Dibujar barras agrupadas
+# Barras agrupadas
 for i, pokeball in enumerate(list_pokeballs):
     frecs = [dpokemon[(pokemon, pokeball)][0] for pokemon in list_pokemons]
     plt.bar(x + i*width - (width*(n_pokeballs-1)/2),
@@ -77,9 +77,8 @@ for i, pokeball in enumerate(list_pokeballs):
 plt.tight_layout()
 plt.show()
 
-#################3
+#################
 
-# Los pokemons y pokeballs que usás
 pokemons = list_pokemons
 pokeballs = list_pokeballs
 
@@ -97,7 +96,7 @@ for pokemon in pokemons:
 
 norm_frec = np.array(norm_frec)  # shape (5 pokemons, 4 pokeballs)
 
-# Ahora graficamos barras agrupadas por pokeball
+# Barras agrupadas por pokeball
 x = np.arange(len(pokeballs))  # posiciones para cada tipo de pokeball
 
 width = 0.15  # ancho de cada barra

@@ -16,8 +16,8 @@ list_salud_names = ["none", "burn", "poison", "freeze", "sleep", "paralysis"]
 
 
 lvl = 100 # 1 a 100
-hp = 1 # 0 a 1
-nit = 100000
+hp = 1E-10 # 0 a 1
+nit = 10000
 
 dpokemon = {}
 

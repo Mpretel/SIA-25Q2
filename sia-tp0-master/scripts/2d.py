@@ -49,7 +49,7 @@ width = 0.13  # ancho de barra
 
 fig, ax = plt.subplots(figsize=(12,6))
 
-# Colores para cada estado de salud (puedes elegir otros)
+# Colores para cada estado de salud
 colores_salud = {
     "none": "gray",
     "poison": "purple",

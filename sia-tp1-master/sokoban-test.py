@@ -32,11 +32,23 @@ def move(board, dr, dc):
     if dest == "#":
         return None
 
+
     if dest in ("$", "*"):
         br, bc = nr + dr, nc + dc
         behind = board[br][bc]
+        # Si detrás de la caja hay pared o caja → no se puede empujar
         if behind in ("#", "$", "*"):
-            return None
+            if dc == 0:
+                behindA = board[nr][nc+1]
+                behindB = board[nr][nc-1]
+            if dr == 0:
+                behindA = board[nr+1][nc]
+                behindB = board[nr-1][nc]
+            if behind in ("#", "$", "*") and (behindA in ("#", "$", "*") or behindB in ("#", "$", "*")):
+                return None  # No se puede mover, hay un deadlock
+            else:
+                return board
+        
         board[br][bc] = "*" if behind == "." else "$"
         board[nr][nc] = "@" if dest == "$" else "+"
     else:
@@ -97,7 +109,9 @@ level = [
     list("########")
 ]
 
+init = time.time()
 solution = bfs_solve(level)
+print(time.time() - init)
 if solution:
     print("Solución encontrada:", solution)
     input("Presiona Enter para ver la animación...")

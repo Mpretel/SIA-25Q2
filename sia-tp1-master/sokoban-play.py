@@ -9,6 +9,18 @@ level = [
     list("#######")
 ]
 
+level2 = [
+    list("     ####"),
+    list("  ####  #"),
+    list("  #@$ $ #"),
+    list("### .#. #"),
+    list("# $$.## ##"),
+    list("#  $...  #"),
+    list("#    #$# #"),
+    list("######   #"),
+    list("     #####")
+]
+
 # Movimientos
 MOVES = {
     "w": (-1, 0),
@@ -35,6 +47,24 @@ def move(board, dr, dc):
     if dest == "#":
         return board
 
+    # Deadlocking conditions (cambiar a opción de Lu)
+    # if dest in ("$", "*"):
+    #     br, bc = nr + dr, nc + dc
+    #     behind = board[br][bc]
+    #     behindbehind = board[br+dr][bc+dc]
+    #     behindU = board[br+dr][bc]
+    #     behindD = board[br-dr][bc]
+    #     behindR = board[br][bc+dc]
+    #     behindL = board[br][bc-dc]
+    #     if behindbehind in ("#", "$", "*") and behindU in ("#", "$", "*"):
+    #         print("Deadlock detected: cannot push box into a corner.")
+    #     if behindbehind in ("#", "$", "*") and behindD in ("#", "$", "*"):
+    #         print("Deadlock detected: cannot push box into a corner.")
+    #     if behindbehind in ("#", "$", "*") and behindR in ("#", "$", "*"):
+    #         print("Deadlock detected: cannot push box into a corner.")
+    #     if behindbehind in ("#", "$", "*") and behindL in ("#", "$", "*"):
+    #         print("Deadlock detected: cannot push box into a corner.") 
+
     # Si hay caja o caja sobre objetivo
     if dest in ("$", "*"):
         # Posición detrás de la caja
@@ -43,8 +73,19 @@ def move(board, dr, dc):
 
         # Si detrás de la caja hay pared o caja → no se puede empujar
         if behind in ("#", "$", "*"):
-            return board
-
+            if dc == 0:
+                behindA = board[nr][nc+1]
+                behindB = board[nr][nc-1]
+            if dr == 0:
+                behindA = board[nr+1][nc]
+                behindB = board[nr-1][nc]
+            print(behindA, behindB)
+            if behind in ("#", "$", "*") and (behindA in ("#", "$", "*") or behindB in ("#", "$", "*")):
+                print("Perdite")
+                return board  # No se puede mover, hay un deadlock
+            else:
+                return board
+      
         # Mover la caja
         if behind == ".":
             board[br][bc] = "*"

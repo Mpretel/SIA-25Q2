@@ -16,6 +16,7 @@ class Sokoban:
         self.board = copy.deepcopy(board)
         self.level = level
         self.moves_seq = []
+        self.nodes_expanded = 0
 
     def find_player(self, board):
         """Finds the player's position in the board."""
@@ -101,40 +102,23 @@ class Sokoban:
 
         return new_board, deadlock
 
-    def bfs_solve(self):
-        """Solves the Sokoban puzzle using breadth-first search.
-        It considers repeated states and deadlocks."""
-        queue = deque([(copy.deepcopy(self.start_board), "")]) # deque to pop states at the front and append new states at the end (FIFO)
-        visited = {self.board_to_str(self.start_board)}        # set of visited states
-
-        while queue:
-            board, path = queue.popleft() # pops the state at the front
-
-            if self.is_solved(board): # checks if the puzzle is solved
-                return path
-
-            for key, (dr, dc) in self.MOVES.items(): # iterates over all possible moves
-                new_board, deadlock = self.move(board, dr, dc)
-
-                if deadlock: # If the move results in a deadlock, skip this state
-                    continue
-
-                state_str = self.board_to_str(new_board)
-                
-                if state_str not in visited: # Check for repeated states
-                    visited.add(state_str)                # Add new state to visited
-                    queue.append((new_board, path + key)) # Add new state to queue
-        return None
-    
-    def dfs_solve(self):
-        """Solves the Sokoban puzzle using depth-first search.
+    def solve(self, method):
+        """Solves the Sokoban puzzle using the specified search method.
         It considers repeated states and deadlocks."""
 
-        stack = [(copy.deepcopy(self.start_board), "")] # stack to append and pop new states at the end (LIFO)
+        if method == "bfs":
+            frontier = deque([(copy.deepcopy(self.start_board), "")])  # queue to pop states at the front and append new states at the end (FIFO)
+            pop_func = frontier.popleft                                # pops the state at the front
+        elif method == "dfs":
+            frontier = [(copy.deepcopy(self.start_board), "")]         # stack to append and pop new states at the end (LIFO)
+            pop_func = frontier.pop                                    # pops the state at the end
+            
         visited = {self.board_to_str(self.start_board)} # set of visited states
 
-        while stack:
-            board, path = stack.pop() # pops the state at the end
+        while frontier:
+            board, path = pop_func() # pops the state at the front or end of the frontier
+
+            self.nodes_expanded += 1
 
             if self.is_solved(board): # checks if the puzzle is solved
                 return path
@@ -149,7 +133,7 @@ class Sokoban:
 
                 if state_str not in visited:  # Check for repeated states
                     visited.add(state_str)                # Add new state to visited
-                    stack.append((new_board, path + key)) # Add new state to stack
+                    frontier.append((new_board, path + key)) # Add new state to frontier
         return None
 
     def replay_solution(self, solution, delay=0.3):
@@ -191,35 +175,35 @@ if __name__ == "__main__":
 
     level = input("Choose a level: ")
     board = load_level(level)
-    mode = input("Mode (manual/auto): ").lower()
+    mode = input("Mode (play/solve): ").lower()
     game = Sokoban(board, level)
 
-    # Stores the start time
-    start_time = time.time()
-    # Manual mode
-    if mode == "manual":
+    # Play mode
+    if mode == "play":
+        # Stores the start time
+        start_time = time.time()
         solution = game.play_manual()
-    # Auto mode
+    # Solve mode
     else:
         method = input("Search method (bfs/dfs): ").lower()
-        if method == "bfs":
-            solution = game.bfs_solve()
-        elif method == "dfs":
-            solution = game.dfs_solve()
-        else:
-            print(f"Invalid search method: {method}")
+        # Stores the start time
+        start_time = time.time()
+        solution = game.solve(method)
+
     # Stores the end time
     end_time = time.time()
     if solution:
         print(f"Solution found for level {level}!")
         print(f"Solution: {' '.join(solution)}")
         print(f"Number of moves: {len(solution)}")
+        if mode == "Solve":
+            print(f"Number of expanded nodes: {game.nodes_expanded}")
         elapsed = end_time - start_time
         print(f"Elapsed time: {elapsed:.2f} seconds")
         input("Press Enter to replay the solution...")
         game.replay_solution(solution)
     else:
-        if mode == "manual":
+        if mode == "Play":
             print("Deadlock! You lost.")
         else:
             print(f"No solution found for level {level}.")

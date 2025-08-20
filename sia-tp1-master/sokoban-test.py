@@ -1,120 +1,225 @@
-import time
 from collections import deque
 import copy
+import time
 import os
 
-MOVES = {
-    "w": (-1, 0),
-    "s": (1, 0),
-    "a": (0, -1),
-    "d": (0, 1)
-}
+class Sokoban:
+    MOVES = {
+        "w": (-1, 0),
+        "s": (1, 0),
+        "a": (0, -1),
+        "d": (0, 1)
+    }
 
-def clear_screen():
-    os.system("cls" if os.name == "nt" else "clear")
+    def __init__(self, board, level):
+        self.start_board = copy.deepcopy(board)
+        self.board = copy.deepcopy(board)
+        self.level = level
+        self.moves_seq = []
 
-def board_to_str(board):
-    return "\n".join("".join(row) for row in board)
+    def find_player(self, board):
+        """Finds the player's position in the board."""
+        for r, row in enumerate(board):
+            for c, val in enumerate(row):
+                if val in ("@", "+"):
+                    return r, c
 
-def find_player(board):
-    for r, row in enumerate(board):
-        for c, val in enumerate(row):
-            if val in ("@", "+"):
-                return r, c
-    return None
+    def board_to_str(self, board):
+        return "\n".join("".join(row) for row in board)
 
-def move(board, dr, dc):
-    board = copy.deepcopy(board)
-    r, c = find_player(board)
-    nr, nc = r + dr, c + dc
-    dest = board[nr][nc]
+    def is_solved(self, board):
+        """Returns True if there are no boxes ($) left to place on their target"""
+        return all(cell != "$" for row in board for cell in row)
 
-    if dest == "#":
+    def clear_screen(self):
+        """Clears the console screen."""
+        os.system("cls" if os.name == "nt" else "clear")
+        
+    def print_board(self, board=None):
+        """Prints the current state of the board."""
+        self.clear_screen()
+        board = board or self.board
+        for row in board:
+            print("".join(row))
+        print(f"\nMovement number: {len(self.moves_seq)}\n")
+
+    def check_deadlock(self, board, r, c, dr, dc):
+        """Checks if the box at (r, c) is locked in a corner made of walls (#)"""
+        behind_behind = board[r + dr][c + dc]
+        if dc == 0:  # vertical
+            adj = (board[r][c+1], board[r][c-1])
+        else:  # horizontal
+            adj = (board[r+1][c], board[r-1][c])
+        return behind_behind == "#" and "#" in adj
+
+    def move(self, board, dr, dc):
+        """Moves the player and the box (if any) in the specified direction.
+        dr and dc are the row and column deltas.
+        """
+        new_board = copy.deepcopy(board)
+
+        # Current position of the player
+        curr_r, curr_c = self.find_player(new_board)
+        # New position of the player after the move
+        new_r, new_c = curr_r + dr, curr_c + dc
+        # Destination cell
+        dest = new_board[new_r][new_c]
+
+        if dest == "#": # If the player is blocked by a wall, it cannot move
+            return new_board, False
+
+        deadlock = False
+
+        if dest in ("$", "*"): # If a box is at the destination cell, check what's behind the box
+            behind_r, behind_c = new_r + dr, new_c + dc
+            behind = new_board[behind_r][behind_c]
+
+            if behind in ("#", "$", "*"): # If the box is blocked by a wall or another box, it cannot be pushed
+                return new_board, deadlock
+
+            # Move the box
+            if behind == ".":
+                new_board[behind_r][behind_c] = "*"  # Move box to goal
+            else:
+                new_board[behind_r][behind_c] = "$"  # Move box to empty space
+
+            # Check if the box is pushed to a deadlock position
+            if behind == " " and self.check_deadlock(new_board, behind_r, behind_c, dr, dc):
+                deadlock = True
+
+        # Move player to new position
+        if dest in (" ", "$"):
+            new_board[new_r][new_c] = "@"  # The player moved to an empty space or pushed a box
+        else:
+            new_board[new_r][new_c] = "+"  # The player moved to a goal
+
+        # Restores the player's previous cell
+        if new_board[curr_r][curr_c] == "@":
+            new_board[curr_r][curr_c] = " " # Player was on an empty space
+        else:
+            new_board[curr_r][curr_c] = "." # Player was on a goal
+
+        return new_board, deadlock
+
+    def bfs_solve(self):
+        """Solves the Sokoban puzzle using breadth-first search.
+        It considers repeated states and deadlocks."""
+        queue = deque([(copy.deepcopy(self.start_board), "")]) # deque to pop states at the front and append new states at the end (FIFO)
+        visited = {self.board_to_str(self.start_board)}        # set of visited states
+
+        while queue:
+            board, path = queue.popleft() # pops the state at the front
+
+            if self.is_solved(board): # checks if the puzzle is solved
+                return path
+
+            for key, (dr, dc) in self.MOVES.items(): # iterates over all possible moves
+                new_board, deadlock = self.move(board, dr, dc)
+
+                if deadlock: # If the move results in a deadlock, skip this state
+                    continue
+
+                state_str = self.board_to_str(new_board)
+                
+                if state_str not in visited: # Check for repeated states
+                    visited.add(state_str)                # Add new state to visited
+                    queue.append((new_board, path + key)) # Add new state to queue
+        return None
+    
+    def dfs_solve(self):
+        """Solves the Sokoban puzzle using depth-first search.
+        It considers repeated states and deadlocks."""
+
+        stack = [(copy.deepcopy(self.start_board), "")] # stack to append and pop new states at the end (LIFO)
+        visited = {self.board_to_str(self.start_board)} # set of visited states
+
+        while stack:
+            board, path = stack.pop() # pops the state at the end
+
+            if self.is_solved(board): # checks if the puzzle is solved
+                return path
+
+            for key, (dr, dc) in self.MOVES.items(): # iterates over all possible moves
+                new_board, deadlock = self.move(board, dr, dc)
+
+                if deadlock: # If the move results in a deadlock, skip this state
+                    continue
+
+                state_str = self.board_to_str(new_board)
+
+                if state_str not in visited:  # Check for repeated states
+                    visited.add(state_str)                # Add new state to visited
+                    stack.append((new_board, path + key)) # Add new state to stack
         return None
 
+    def replay_solution(self, solution, delay=0.3):
+        """Replays the solution to the Sokoban puzzle. It replicates the player's moves and prints each board state."""
+        board = copy.deepcopy(self.start_board)
+        self.moves_seq = []
+        for key in solution:
+            dr, dc = self.MOVES[key]
+            board, _ = self.move(board, dr, dc)
+            self.moves_seq.append(key)
+            self.print_board(board)
+            time.sleep(delay)
 
-    if dest in ("$", "*"):
-        br, bc = nr + dr, nc + dc
-        behind = board[br][bc]
-        # Si detrás de la caja hay pared o caja → no se puede empujar
-        if behind in ("#", "$", "*"):
-            if dc == 0:
-                behindA = board[nr][nc+1]
-                behindB = board[nr][nc-1]
-            if dr == 0:
-                behindA = board[nr+1][nc]
-                behindB = board[nr-1][nc]
-            if behind in ("#", "$", "*") and (behindA in ("#", "$", "*") or behindB in ("#", "$", "*")):
-                return None  # No se puede mover, hay un deadlock
-            else:
-                return board
-        
-        board[br][bc] = "*" if behind == "." else "$"
-        board[nr][nc] = "@" if dest == "$" else "+"
+    def play_manual(self):
+        """Plays the Sokoban puzzle in manual mode."""
+        self.moves_seq = [] # Initialize the moves sequence
+        while True:
+            self.print_board()
+
+            if self.is_solved(self.board): # Check if the puzzle is solved
+                return self.moves_seq
+
+            # Get user input for the next move
+            key = input("Press a key to move (↑W ←A ↓S →D): ").lower()
+            if key in self.MOVES:
+                dr, dc = self.MOVES[key]
+                self.board, deadlock = self.move(self.board, dr, dc) # Move the player
+                self.moves_seq.append(key) # Append the move to the sequence
+
+                if deadlock: # If the move results in a deadlock, the game is over
+                    self.print_board()
+                    return None
+
+if __name__ == "__main__":
+    def load_level(level):
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        with open(f"{base_path}/levels/level{level}.txt", "r", encoding="utf-8") as f:
+            return [list(line.rstrip("\n")) for line in f]
+
+    level = input("Choose a level: ")
+    board = load_level(level)
+    mode = input("Mode (manual/auto): ").lower()
+    game = Sokoban(board, level)
+
+    # Stores the start time
+    start_time = time.time()
+    # Manual mode
+    if mode == "manual":
+        solution = game.play_manual()
+    # Auto mode
     else:
-        board[nr][nc] = "@" if dest == " " else "+"
-
-    board[r][c] = " " if board[r][c] == "@" else "."
-    return board
-
-def is_solved(board):
-    return all(cell != "$" for row in board for cell in row)
-
-def bfs_solve(start_board):
-    start_state = board_to_str(start_board)
-    queue = deque([(start_board, "")])
-    visited = {start_state}
-
-    while queue:
-        board, path = queue.popleft()
-
-        if is_solved(board):
-            return path
-
-        for move_key, (dr, dc) in MOVES.items():
-            new_board = move(board, dr, dc)
-            if new_board is None:
-                continue
-            state_str = board_to_str(new_board)
-            if state_str not in visited:
-                visited.add(state_str)
-                queue.append((new_board, path + move_key))
-    return None
-
-def print_board(board):
-    for row in board:
-        print("".join(row))
-
-def animate_solution(board, solution, delay=0.3):
-    current = copy.deepcopy(board)
-    clear_screen()
-    print_board(current)
-    time.sleep(delay)
-
-    for step in solution:
-        dr, dc = MOVES[step]
-        current = move(current, dr, dc)
-        clear_screen()
-        print_board(current)
-        time.sleep(delay)
-
-# Ejemplo de nivel
-level = [
-    list("########"),
-    list("#     .#"),
-    list("# .$  $#"),
-    list("# $$@  #"),
-    list("#  .   #"),
-    list("#    . #"),
-    list("########")
-]
-
-init = time.time()
-solution = bfs_solve(level)
-print(time.time() - init)
-if solution:
-    print("Solución encontrada:", solution)
-    input("Presiona Enter para ver la animación...")
-    animate_solution(level, solution, delay=0.3)
-else:
-    print("No se encontró solución")
+        method = input("Search method (bfs/dfs): ").lower()
+        if method == "bfs":
+            solution = game.bfs_solve()
+        elif method == "dfs":
+            solution = game.dfs_solve()
+        else:
+            print(f"Invalid search method: {method}")
+    # Stores the end time
+    end_time = time.time()
+    if solution:
+        print(f"Solution found for level {level}!")
+        print(f"Solution: {' '.join(solution)}")
+        print(f"Number of moves: {len(solution)}")
+        elapsed = end_time - start_time
+        print(f"Elapsed time: {elapsed:.2f} seconds")
+        input("Press Enter to replay the solution...")
+        game.replay_solution(solution)
+    else:
+        if mode == "manual":
+            print("Deadlock! You lost.")
+        else:
+            print(f"No solution found for level {level}.")

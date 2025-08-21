@@ -3,6 +3,7 @@ import copy
 import time
 from collections import deque
 import heapq
+import itertools
 
 
 class Sokoban:
@@ -104,10 +105,54 @@ class Sokoban:
 
         return new_board, deadlock
 
-    def solve(self, method):
+    def heuristic_manhattan(self, board):
+        """Calculates the Manhattan distance heuristic for the given board state.
+        Calculates the minimum sum of the Manhattan distances of each box ($) to its goal (.)
+        """
+        locs_objs = []
+        locs_boxes = []
+        for r, row in enumerate(board):
+            for c, cell in enumerate(row):
+                if cell == "$":
+                    locs_boxes.append((r, c))
+                elif cell == ".":
+                    locs_objs.append((r, c))
+
+        # Calculate distance of the combination of boxes and goals that gives the minimum distance 
+        min_total_distance = float('inf')
+        permutations = itertools.permutations(locs_boxes, len(locs_objs))
+        for perm_locs_boxes in permutations:
+            total_distance = 0
+            for loc_box, loc_obj in zip(perm_locs_boxes, locs_objs):
+                total_distance += abs(loc_box[0] - loc_obj[0]) + abs(loc_box[1] - loc_obj[1])
+            if total_distance < min_total_distance:
+                min_total_distance = total_distance
+
+        return min_total_distance
+
+    def heuristic_misplaced(self, board):
+        """Calculates the misplaced tiles heuristic for the given board state.
+        """
+        # Counts the number of boxes in the wrong position ($)
+        misplaced = sum(1 for row in board for cell in row if cell == "$")
+        return misplaced
+
+    def heuristic(self, board, strategy):
+        """Calculates the heuristic value for the given board state.
+        """
+        # manhattan heuristic is always >= misplaced heuristic
+        if strategy == "manhattan":
+            return self.heuristic_manhattan(board)
+        elif strategy == "misplaced":
+            return self.heuristic_misplaced(board)
+        else:
+            raise ValueError(f"Unknown heuristic strategy: {strategy}")
+
+    def solve(self, method, heuristic=None):
         """Solves the Sokoban puzzle using the specified search method.
         It considers repeated states and deadlocks."""
 
+        heuristic_time = 0
         if self.is_solved(self.start_board): # checks if the start puzzle is solved
             return ""
     
@@ -117,12 +162,26 @@ class Sokoban:
         elif method == "dfs":
             frontier = [(copy.deepcopy(self.start_board), "")]         # stack to append and pop new states at the end (LIFO)
             pop_func = frontier.pop                                    # pops the state at the end
-            
+        else:
+            # Metodos informados
+            start = time.time()
+            h = self.heuristic(board=self.start_board, strategy=heuristic)
+            end = time.time()
+            heuristic_time += (end - start)
+            g = 0
+            f = g + h
+            frontier = [(f, copy.deepcopy(self.start_board), "")] # priority queue to pop states with the lowest cost (f = g + h)
+            heapq.heapify(frontier)  # transform list into a heap
+            pop_func = heapq.heappop # pops the state with the lowest cost
+
         visited = {self.board_to_str(self.start_board)} # set of visited states
 
         while frontier:
-            board, path = pop_func() # pops the state at the front or end of the frontier
-            
+            if method == "bfs" or method == "dfs":
+                board, path = pop_func() # pops the state at the front or end of the frontier
+            else:
+                f, board, path = pop_func(frontier) # pops the state with the lowest cost
+
             self.nodes_expanded += 1
 
             for key, (dr, dc) in self.MOVES.items(): # iterates over all possible moves
@@ -130,6 +189,7 @@ class Sokoban:
                 new_board, deadlock = self.move(board, dr, dc)
 
                 if self.is_solved(new_board): # checks if the puzzle is solved
+                    print(f"Heuristic calculation time: {heuristic_time} seconds")
                     return new_path
 
                 if deadlock: # If the move results in a deadlock, skip this state
@@ -139,7 +199,16 @@ class Sokoban:
 
                 if state_str not in visited:  # Check for repeated states
                     visited.add(state_str)                # Add new state to visited
-                    frontier.append((new_board, new_path)) # Add new state to frontier
+                    if method == "bfs" or method == "dfs":
+                        frontier.append((new_board, new_path)) # Add new state to frontier
+                    else:
+                        start = time.time()
+                        f = self.heuristic(board=new_board, strategy=heuristic) # h
+                        end = time.time()
+                        heuristic_time += (end - start)
+                        if method == "a_star":
+                            f += len(new_path) # g
+                        heapq.heappush(frontier, (f, new_board, new_path))
         return None
 
 
@@ -177,8 +246,15 @@ class Sokoban:
 if __name__ == "__main__":
     def load_level(level):
         base_path = os.path.dirname(os.path.abspath(__file__))
-        with open(f"{base_path}/levels/level{level}.txt", "r", encoding="utf-8") as f:
+        with open(f"{base_path}/levels/{level}.txt", "r", encoding="utf-8") as f:
             return [list(line.rstrip("\n")) for line in f]
+
+    map_arrow_keys = {
+        'w': '↑',
+        'a': '←',
+        's': '↓',
+        'd': '→'
+    }
 
     level = input("Choose a level: ")
     board = load_level(level)
@@ -192,16 +268,24 @@ if __name__ == "__main__":
         solution = game.play_manual()
     # Solve mode
     else:
-        method = input("Search method (bfs/dfs): ").lower()
-        # Stores the start time
-        start_time = time.time()
-        solution = game.solve(method)
+        method = input("Search method (bfs/dfs/greedy/a_star): ").lower()
+        if method in ["greedy", "a_star"]:
+            strategy = input("Heuristic strategy (manhattan/misplaced): ").lower()
+            # Stores the start time
+            start_time = time.time()
+            solution = game.solve(method, strategy)
+        else:
+            # Stores the start time
+            start_time = time.time()
+            solution = game.solve(method)
 
     # Stores the end time
     end_time = time.time()
     if solution:
         print(f"Solution found for level {level}!")
-        print(f"Solution: {' '.join(solution)}")
+        # map solution to arrow keys
+        arrow_solution = [map_arrow_keys[key] for key in solution]
+        print(f"Solution: {' '.join(arrow_solution)}")
         print(f"Number of moves: {len(solution)}")
         if mode == "solve":
             print(f"Number of expanded nodes: {game.nodes_expanded}")
@@ -214,20 +298,3 @@ if __name__ == "__main__":
             print("Deadlock! You lost.")
         else:
             print(f"No solution found for level {level}.")
-
-# imprimir tambien profundidad del arbol, pueod animar el arbol y preguntar si hay que poner opcion de max depth
-
-
-# mapear las letras wsda a flechitas
-'''arrow_keys = {
-    'w': '↑',
-    'a': '←',
-    's': '↓',
-    'd': '→'
-}'''
-
-# agregar depth y ancho del arbol y poner max depth 
-
-# bajar los niveles más comunes
-
-# grabar pantalla de la solucion en la terminal 

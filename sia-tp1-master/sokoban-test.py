@@ -1,14 +1,16 @@
-from collections import deque
+import os
 import copy
 import time
-import os
+from collections import deque
+import heapq
+
 
 class Sokoban:
     MOVES = {
         "w": (-1, 0),
-        "s": (1, 0),
         "a": (0, -1),
-        "d": (0, 1)
+        "d": (0, 1),
+        "s": (1, 0)
     }
 
     def __init__(self, board, level):
@@ -66,10 +68,10 @@ class Sokoban:
         # Destination cell
         dest = new_board[new_r][new_c]
 
-        if dest == "#": # If the player is blocked by a wall, it cannot move
-            return new_board, False
-
         deadlock = False
+
+        if dest == "#": # If the player is blocked by a wall, it cannot move
+            return new_board, deadlock
 
         if dest in ("$", "*"): # If a box is at the destination cell, check what's behind the box
             behind_r, behind_c = new_r + dr, new_c + dc
@@ -106,6 +108,9 @@ class Sokoban:
         """Solves the Sokoban puzzle using the specified search method.
         It considers repeated states and deadlocks."""
 
+        if self.is_solved(self.start_board): # checks if the start puzzle is solved
+            return ""
+    
         if method == "bfs":
             frontier = deque([(copy.deepcopy(self.start_board), "")])  # queue to pop states at the front and append new states at the end (FIFO)
             pop_func = frontier.popleft                                # pops the state at the front
@@ -117,14 +122,15 @@ class Sokoban:
 
         while frontier:
             board, path = pop_func() # pops the state at the front or end of the frontier
-
+            
             self.nodes_expanded += 1
 
-            if self.is_solved(board): # checks if the puzzle is solved
-                return path
-
             for key, (dr, dc) in self.MOVES.items(): # iterates over all possible moves
+                new_path = path + key
                 new_board, deadlock = self.move(board, dr, dc)
+
+                if self.is_solved(new_board): # checks if the puzzle is solved
+                    return new_path
 
                 if deadlock: # If the move results in a deadlock, skip this state
                     continue
@@ -133,8 +139,9 @@ class Sokoban:
 
                 if state_str not in visited:  # Check for repeated states
                     visited.add(state_str)                # Add new state to visited
-                    frontier.append((new_board, path + key)) # Add new state to frontier
+                    frontier.append((new_board, new_path)) # Add new state to frontier
         return None
+
 
     def replay_solution(self, solution, delay=0.3):
         """Replays the solution to the Sokoban puzzle. It replicates the player's moves and prints each board state."""
@@ -196,14 +203,31 @@ if __name__ == "__main__":
         print(f"Solution found for level {level}!")
         print(f"Solution: {' '.join(solution)}")
         print(f"Number of moves: {len(solution)}")
-        if mode == "Solve":
+        if mode == "solve":
             print(f"Number of expanded nodes: {game.nodes_expanded}")
         elapsed = end_time - start_time
         print(f"Elapsed time: {elapsed:.2f} seconds")
         input("Press Enter to replay the solution...")
         game.replay_solution(solution)
     else:
-        if mode == "Play":
+        if mode == "play":
             print("Deadlock! You lost.")
         else:
             print(f"No solution found for level {level}.")
+
+# imprimir tambien profundidad del arbol, pueod animar el arbol y preguntar si hay que poner opcion de max depth
+
+
+# mapear las letras wsda a flechitas
+'''arrow_keys = {
+    'w': '↑',
+    'a': '←',
+    's': '↓',
+    'd': '→'
+}'''
+
+# agregar depth y ancho del arbol y poner max depth 
+
+# bajar los niveles más comunes
+
+# grabar pantalla de la solucion en la terminal 

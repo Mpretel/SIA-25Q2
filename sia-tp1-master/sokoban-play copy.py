@@ -2,11 +2,11 @@ import copy
 
 # Nivel inicial
 level = [
-    list("#######"),
-    list("#     #"),
-    list("#  $@ #"),
-    list("#.    #"),
-    list("#######")
+    list("##########"),
+    list("#     ####"),
+    list("#  $@    #"),
+    list("#.    ####"),
+    list("##########")
 ]
 
 level2 = [
@@ -36,6 +36,16 @@ def find_player(board):
                 return r, c
     return None
 
+def deadlock_detection(board, r, c):
+    if board[r][c] == ".":
+        return False
+    
+    # Revisar esquinas
+    if board[r][c] != "#" and ((board[r-1][c] == "#" or board[r+1][c] == "#") and \
+       (board[r][c-1] == "#" or board[r][c+1] == "#")):
+        return True
+    return False
+
 def move(board, dr, dc):
     r, c = find_player(board)
     nr, nc = r + dr, c + dc  # nueva posición jugador
@@ -47,45 +57,19 @@ def move(board, dr, dc):
     if dest == "#":
         return board
 
-    # Deadlocking conditions (cambiar a opción de Lu)
-    # if dest in ("$", "*"):
-    #     br, bc = nr + dr, nc + dc
-    #     behind = board[br][bc]
-    #     behindbehind = board[br+dr][bc+dc]
-    #     behindU = board[br+dr][bc]
-    #     behindD = board[br-dr][bc]
-    #     behindR = board[br][bc+dc]
-    #     behindL = board[br][bc-dc]
-    #     if behindbehind in ("#", "$", "*") and behindU in ("#", "$", "*"):
-    #         print("Deadlock detected: cannot push box into a corner.")
-    #     if behindbehind in ("#", "$", "*") and behindD in ("#", "$", "*"):
-    #         print("Deadlock detected: cannot push box into a corner.")
-    #     if behindbehind in ("#", "$", "*") and behindR in ("#", "$", "*"):
-    #         print("Deadlock detected: cannot push box into a corner.")
-    #     if behindbehind in ("#", "$", "*") and behindL in ("#", "$", "*"):
-    #         print("Deadlock detected: cannot push box into a corner.") 
-
     # Si hay caja o caja sobre objetivo
     if dest in ("$", "*"):
         # Posición detrás de la caja
         br, bc = nr + dr, nc + dc
         behind = board[br][bc]
 
-        # Si detrás de la caja hay pared o caja → no se puede empujar
+        if deadlock_detection(board, br, bc):
+            print("Deadlock detected")
+            board[br][bc] = "$" # Que la ponga en la esquina pero que devuelva None (en test)
+
         if behind in ("#", "$", "*"):
-            if dc == 0:
-                behindA = board[nr][nc+1]
-                behindB = board[nr][nc-1]
-            if dr == 0:
-                behindA = board[nr+1][nc]
-                behindB = board[nr-1][nc]
-            print(behindA, behindB)
-            if behind in ("#", "$", "*") and (behindA in ("#", "$", "*") or behindB in ("#", "$", "*")):
-                print("Perdite")
-                return board  # No se puede mover, hay un deadlock
-            else:
-                return board
-      
+            return board  # No mover si hay pared o caja detrás
+        
         # Mover la caja
         if behind == ".":
             board[br][bc] = "*"
@@ -120,7 +104,7 @@ def is_solved(board):
     return True
 
 # Juego principal
-board = copy.deepcopy(level2)
+board = copy.deepcopy(level)
 
 while True:
     print_board(board)

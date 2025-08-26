@@ -8,16 +8,15 @@ import itertools
 
 class Sokoban:
     MOVES = {
-        "w": (-1, 0),
-        "a": (0, -1),
-        "d": (0, 1),
-        "s": (1, 0)
+        "w": (-1, 0),  # Up
+        "a": (0, -1),  # Left
+        "s": (1, 0),   # Down
+        "d": (0, 1)    # Right
     }
 
-    def __init__(self, board, level):
+    def __init__(self, board):
         self.start_board = copy.deepcopy(board)
         self.board = copy.deepcopy(board)
-        self.level = level
         self.moves_seq = []
         self.nodes_expanded = 0
 
@@ -244,7 +243,23 @@ class Sokoban:
                     return None
 
 if __name__ == "__main__":
+    def ask_choice(prompt, choices):
+        """Asks the user for a choice until a valid one is given."""
+        choice = None
+        choices_str = "/".join(choices)
+        while choice not in choices:
+            choice = input(f"{prompt} ({choices_str}): ").strip().lower()
+        return choice
+
+    def list_levels():
+        """Lists all available Sokoban levels."""
+        base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "levels")
+        levels = [f.replace(".txt", "") for f in os.listdir(base_path) if f.endswith(".txt")]
+        levels.sort()
+        return levels
+
     def load_level(level):
+        """Loads a Sokoban level from a file."""
         base_path = os.path.dirname(os.path.abspath(__file__))
         with open(f"{base_path}/levels/{level}.txt", "r", encoding="utf-8") as f:
             return [list(line.rstrip("\n")) for line in f]
@@ -256,35 +271,39 @@ if __name__ == "__main__":
         'd': '→'
     }
 
-    level = input("Choose a level: ")
+    # Choose level
+    available_levels = list_levels()
+    level = ask_choice("Choose a level", available_levels)
+
     board = load_level(level)
-    mode = input("Mode (play/solve): ").lower()
-    game = Sokoban(board, level)
+    game = Sokoban(board)
+
+    # Choose mode
+    mode = ask_choice("Choose a mode", ["play", "solve"])
 
     # Play mode
     if mode == "play":
-        # Stores the start time
-        start_time = time.time()
+        start_time = time.time() # Stores the start time
         solution = game.play_manual()
     # Solve mode
     else:
-        method = input("Search method (bfs/dfs/greedy/a_star): ").lower()
-        if method in ["greedy", "a_star"]:
-            strategy = input("Heuristic strategy (manhattan/misplaced): ").lower()
-            # Stores the start time
-            start_time = time.time()
-            solution = game.solve(method, strategy)
-        else:
-            # Stores the start time
-            start_time = time.time()
-            solution = game.solve(method)
+        # Choose search method
+        method = ask_choice("Choose a search method", ["bfs", "dfs", "greedy", "a_star"])
 
-    # Stores the end time
-    end_time = time.time()
+        # Choose heuristic strategy if needed
+        strategy = None
+        if method in ["greedy", "a_star"]:
+            strategy = ask_choice("Choose an heuristic strategy", ["manhattan", "misplaced"])
+
+        start_time = time.time() # Stores the start time
+        solution = game.solve(method, strategy)
+
+    end_time = time.time() # Stores the end time
+
+    # Print results
     if solution:
         print(f"Solution found for level {level}!")
-        # map solution to arrow keys
-        arrow_solution = [map_arrow_keys[key] for key in solution]
+        arrow_solution = [map_arrow_keys[key] for key in solution] # map solution to arrow keys
         print(f"Solution: {' '.join(arrow_solution)}")
         print(f"Number of moves: {len(solution)}")
         if mode == "solve":

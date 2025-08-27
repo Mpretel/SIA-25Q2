@@ -199,9 +199,9 @@ class Sokoban:
                 if state_str not in visited:  # Check for repeated states
                     visited.add(state_str)                # Add new state to visited
                     # Print the board for visualization (optional)
-                    #self.print_board(new_board)
-                    #print(len(visited), "nodes visited")
-                    #time.sleep(0.1)  # Small delay to visualize the search process
+                    # self.print_board(new_board)
+                    # print(len(visited), "nodes visited")
+                    # time.sleep(0.1)  # Small delay to visualize the search process
                     
                     if method == "bfs" or method == "dfs":
                         frontier.append((new_board, new_path)) # Add new state to frontier

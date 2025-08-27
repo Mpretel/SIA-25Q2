@@ -70,7 +70,7 @@ Se te pedirá que elijas uno de los siguientes algoritmos:
         - `bfs` → Búsqueda en amplitud (Breadth-First Search)
         - `dfs` → Búsqueda en profundidad (Depth-First Search)
     - Métodos de búsqueda informada:
-        - `greedy` → Búsqueda voraz (Greedy Search)
+        - `greedy` → Búsqueda voraz (Global Greedy Search)
         - `a_star` → Búsqueda A estrella (A*)
 
         Luego, si elegiste `greedy` o `a_star`, se te pedirá que elijas una heurística:

@@ -169,7 +169,7 @@ class Sokoban:
             heuristic_time += (end - start)
             g = 0
             f = g + h
-            frontier = [(f, copy.deepcopy(self.start_board), "")] # priority queue to pop states with the lowest cost (f = g + h)
+            frontier = [(f, h, copy.deepcopy(self.start_board), "")] # priority queue to pop states with the lowest cost (f = g + h), at equal cost, prefer the one with lower h
             heapq.heapify(frontier)  # transform list into a heap
             pop_func = heapq.heappop # pops the state with the lowest cost
 
@@ -179,7 +179,7 @@ class Sokoban:
             if method == "bfs" or method == "dfs":
                 board, path = pop_func() # pops the state at the front or end of the frontier
             else:
-                f, board, path = pop_func(frontier) # pops the state with the lowest cost
+                f, h, board, path = pop_func(frontier) # pops the state with the lowest cost
 
             self.nodes_expanded += 1
 
@@ -207,12 +207,15 @@ class Sokoban:
                         frontier.append((new_board, new_path)) # Add new state to frontier
                     else:
                         start = time.time()
-                        f = self.heuristic(board=new_board, strategy=heuristic) # h
+                        h = self.heuristic(board=new_board, strategy=heuristic)
                         end = time.time()
                         heuristic_time += (end - start)
                         if method == "a_star":
-                            f += len(new_path) # g
-                        heapq.heappush(frontier, (f, new_board, new_path))
+                            g = len(new_path)
+                        else: # greedy
+                            g = 0
+                        f = g + h
+                        heapq.heappush(frontier, (f, h, new_board, new_path))
         return None
 
 

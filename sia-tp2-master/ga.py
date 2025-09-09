@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 import random, os, time
+import cv2
 
 # ---------------------------
 # Clase que representa un individuo
@@ -56,8 +57,8 @@ class Individual:
         r = rendered.astype(np.int32)
         t = target_rgb.astype(np.int32)
         mae = np.mean(np.abs(r - t))
-        sim = 1/mae  # entre 0 y 1
-        # sim = 1.0 - (mae / 255.0) normalizado
+        #sim = 1/mae  # entre 0 y 1
+        sim = 1.0 - (mae / 255.0)
         self.fitness = sim
         return sim
 
@@ -66,7 +67,7 @@ class Individual:
 # ---------------------------
 class GeneticAlgorithm:
     def __init__(self, target_path, canvas_size, n_triangles, pop_size,
-                 generations, crossover_rate, mutation_rate, elitism, tournament_k, out_dir):
+                 generations, crossover_rate, mutation_rate, elitism, tournament_k, out_dir, k_threshold=0.7):
         self.target_path = target_path
         self.canvas_size = canvas_size
         self.n_triangles = n_triangles
@@ -76,7 +77,9 @@ class GeneticAlgorithm:
         self.mutation_rate = mutation_rate
         self.elitism = elitism
         self.tournament_k = tournament_k
+        self.k_threshold = k_threshold
         self.out_dir = out_dir
+        self.history = []
 
         os.makedirs(out_dir, exist_ok=True)
         self.target_img = Image.open(target_path).convert('RGB').resize(canvas_size, Image.LANCZOS)
@@ -85,10 +88,19 @@ class GeneticAlgorithm:
         self.population = [Individual(n_triangles, canvas_size) for _ in range(pop_size)]
         self.best = None
         self.best_fitness = -1
-
+    
+    # Torneo determinístico
     def tournament_selection(self):
         competitors = random.sample(self.population, self.tournament_k)
         return max(competitors, key=lambda ind: ind.fitness)
+    
+    # Torneo probabilístico
+    def tournament_threshold(self):
+        competitors = random.sample(self.population, 2)
+        if random.random() < self.k_threshold:
+            return max(competitors, key=lambda ind: ind.fitness)
+        else:
+            return min(competitors, key=lambda ind: ind.fitness)
 
     # Crossover uniforme (P=0.5), cada alelo es un triángulo completo
     def crossover(self, parent_a, parent_b):
@@ -116,27 +128,24 @@ class GeneticAlgorithm:
 
             # Encontrar el mejor de la generación
             gen_best = max(self.population, key=lambda ind: ind.fitness)
-
-            # Mostrar progreso en tiempo real
-            # plt.ion()
-            # fig, ax = plt.subplots()
-            # im = ax.imshow(self.population[0].render())  # primer render
-            # ax.set_title("Best individual")
-            # plt.show()
+            self.history.append(gen_best.fitness)
 
             if gen_best.fitness > self.best_fitness:
                 self.best = gen_best
                 self.best_fitness = gen_best.fitness
 
-                # # Actualizar la figura en tiempo real
-                # im.set_data(self.best.render())
-                # ax.set_title(f"Gen {gen} | fitness {self.best_fitness:.4f}")
-                # plt.pause(0.001)
+
+
+                # Actualizar la figura en tiempo real
+                img_rgb = np.array(gen_best.render().convert("RGB"))
+                img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+                cv2.imshow("Best Individual", img_bgr)
+                if cv2.waitKey(1000) & 0xFF == 27:  # 100 ms, ESC para salir
+                    break
 
                 # Opcional: guardar la mejor imagen cada vez que se mejora
-                # self.best.render().save(os.path.join(self.out_dir, f'best_gen{gen:05d}.png'))
-            # plt.ioff()
-            # plt.show()
+                self.best.render().save(os.path.join(self.out_dir, f'best_gen{gen:05d}.png'))
+
 
             if gen % 10 == 0 or gen == 1:
                 elapsed = time.time() - start_time
@@ -155,10 +164,13 @@ class GeneticAlgorithm:
                 self.mutate(child)
                 new_pop.append(child)
 
+            # Selección/ sesgo joven o tradicional según aptitud
+
             self.population = new_pop
 
         print("Finalizado. Mejor similarity:", np.round(self.best_fitness, 3))
         # print("Finalizado. Mejor similarity:", self.best_fitness, "->", self.best_fitness * 100.0, "%") normalizado
+        self.plot_fitness()
         self.best.render().save("best_final.png")
 
 

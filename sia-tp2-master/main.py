@@ -1,6 +1,7 @@
 import json
 import argparse
 from ga import GeneticAlgorithm
+from PIL import Image
 
 
 def main():
@@ -11,11 +12,17 @@ def main():
     # Cargar json
     with open(args.config, "r") as f:
         config = json.load(f)
+    
+    # Obtener tamaño de la imagen target
+    i=2
+    with Image.open(config["target_path"]) as img:
+        w, h = img.size  # (width, height)
+        canvas_size = (w//i, h//i)
 
     # Crear GA con los parámetros del json
     ga = GeneticAlgorithm(
         target_path=config["target_path"],
-        canvas_size=tuple(config["canvas_size"]),
+        canvas_size=canvas_size,
         n_triangles=config["n_triangles"],
         pop_size=config["pop_size"],
         generations=config["generations"],

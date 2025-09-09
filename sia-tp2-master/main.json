@@ -1,0 +1,12 @@
+{
+  "target_path": "ghana.png",
+  "canvas_size": [600, 400],
+  "n_triangles": 50,
+  "pop_size": 10,
+  "generations": 100,
+  "crossover_rate": 0.7,
+  "mutation_rate": 0.01,
+  "elitism": 2,
+  "tournament_k": 3,
+  "out_dir": "ga_output"
+}

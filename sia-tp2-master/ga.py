@@ -67,7 +67,12 @@ class Individual:
 # ---------------------------
 class GeneticAlgorithm:
     def __init__(self, target_path, canvas_size, n_triangles, pop_size,
-                 generations, crossover_rate, mutation_rate, elitism, tournament_k, out_dir, k_threshold=0.7):
+                 generations, crossover_rate, mutation_rate, elitism, tournament_k, out_dir, k_threshold=0.7, seed=None):
+        
+        if seed is not None:
+            random.seed(seed)
+            np.random.seed(seed)
+        
         self.target_path = target_path
         self.canvas_size = canvas_size
         self.n_triangles = n_triangles
@@ -117,6 +122,16 @@ class GeneticAlgorithm:
         mask = np.random.rand(flat.size) < self.mutation_rate
         flat[mask] = np.random.randint(0, 256, size=mask.sum(), dtype=np.uint8)
         individual.genes = flat.reshape(individual.genes.shape)
+    
+    # Graficar evolución del fitness
+    def plot_fitness(self):
+        plt.figure(figsize=(8, 5))
+        plt.plot(range(1, len(self.history)+1), self.history, marker="o")
+        plt.title("Evolución del fitness")
+        plt.xlabel("Generación")
+        plt.ylabel("Best fitness")
+        plt.grid(True)
+        plt.show()
 
     def run(self):
         start_time = time.time()

@@ -30,7 +30,8 @@ def main():
         mutation_rate=config["mutation_rate"],
         elitism=config["elitism"],
         tournament_k=config["tournament_k"],
-        out_dir=config["out_dir"]
+        out_dir=config["out_dir"],
+        seed=config.get("seed", None)
     )
 
     ga.run()

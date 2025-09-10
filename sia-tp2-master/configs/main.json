@@ -1,0 +1,27 @@
+{
+  "pop_size": 30,
+  "kids_size": 20,
+  "parents_selection_method": {
+    "name": "tournament",
+    "k": 5
+  },
+  "crossover": {
+    "method": {
+      "name": "uniform",
+      "rate": 0.5
+      },
+    "crossover_rate": 0.7
+  },
+  "mutation": {
+    "method": "complete",
+    "mutation_rate": 0.1
+  },
+  "new_generation_selection_method": {
+    "name": "tournament",
+    "k": 5
+  },
+  "end_criteria": {
+    "name": "generations",
+    "value": 500
+  }
+}

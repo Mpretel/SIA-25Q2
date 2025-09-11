@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 import random, os, time
 import cv2
 
-from constants import MIN_ALPHA, MAX_ALPHA, MIN_AREA, SEED
+from constants import MIN_ALPHA, MAX_ALPHA, MIN_AREA, MAX_AREA, SEED
 
 if SEED is not None:
     random.seed(SEED)
@@ -36,11 +36,10 @@ class Individual:
                 a = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
 
                 # 3 vértices (X,Y) ∈ [0, 255], con área mínima
-                if MIN_AREA:
-                    while True:
+                if MIN_AREA or MAX_AREA:
+                    coords = np.random.randint(0, 256, size=6)
+                    while triangle_area(coords) < MIN_AREA or triangle_area(coords) > MAX_AREA:
                         coords = np.random.randint(0, 256, size=6)
-                        if triangle_area(coords) >= MIN_AREA:
-                            break
 
                 # 3 vértices (X,Y) ∈ [0, 255]
                 else:
@@ -289,9 +288,9 @@ class GeneticAlgorithm:
                         else:  # RGB, X Y coord
                             triangle[j] = np.random.randint(0, 256)
                 
-                if MIN_AREA:
+                if MIN_AREA or MAX_AREA:
                     # asegurar que el triángulo resultante tenga área mínima
-                    while triangle_area(triangle[4:]) < MIN_AREA:
+                    while triangle_area(triangle[4:]) < MIN_AREA or triangle_area(triangle[4:]) > MAX_AREA:
                         xs = np.random.randint(0, 256, size=3)
                         ys = np.random.randint(0, 256, size=3)
                         triangle[4:] = np.array([*xs, *ys], dtype=np.uint8)
@@ -309,9 +308,9 @@ class GeneticAlgorithm:
                     else:  # RGB, X Y coord
                         triangle[j] = np.random.randint(0, 256)
                     
-                    if MIN_AREA:
+                    if MIN_AREA or MAX_AREA:
                         # asegurar que el triángulo resultante tenga área mínima
-                        while triangle_area(triangle[4:]) < MIN_AREA:
+                        while triangle_area(triangle[4:]) < MIN_AREA or triangle_area(triangle[4:]) > MAX_AREA:
                             xs = np.random.randint(0, 256, size=3)
                             ys = np.random.randint(0, 256, size=3)
                             triangle[4:] = np.array([*xs, *ys], dtype=np.uint8)
@@ -335,10 +334,10 @@ class GeneticAlgorithm:
             
             # --- chequeo área mínima en todos los triángulos ---
             for triangle in individual.genes:
-                if triangle_area(triangle[4:10]) < MIN_AREA:
+                if triangle_area(triangle[4:10]) < MIN_AREA or triangle_area(triangle[4:10]) > MAX_AREA:
                     while True:
                         coords = np.random.randint(0, 256, size=6)
-                        if triangle_area(coords) >= MIN_AREA:
+                        if triangle_area(coords) >= MIN_AREA and triangle_area(coords) <= MAX_AREA:
                             triangle[4:10] = coords
                             break
                         
@@ -403,17 +402,13 @@ class GeneticAlgorithm:
                 self.best = gen_best
                 self.best_fitness = gen_best.fitness
 
-                # print best triangle areas
-                areas = [triangle_area(triangle[4:]) for triangle in self.best.genes]
-                print(f"New best fitness: {self.best_fitness:.4f} | Areas: min {min(areas):.1f}, max {max(areas):.1f}, avg {np.mean(areas):.1f}")
-
                 # Mostrar las dos imágenes
                 img1_rgb = np.array(gen_best.render().convert("RGB"))
                 img1_bgr = cv2.cvtColor(img1_rgb, cv2.COLOR_RGB2BGR)
                 img2_bgr = cv2.cvtColor(self.target_rgb, cv2.COLOR_RGB2BGR)
                 combined = np.hstack((img1_bgr, img2_bgr))
                 cv2.imshow("Best vs Target", combined)
-                if cv2.waitKey(100) & 0xFF == 27:  # ESC para salir
+                if cv2.waitKey(10) & 0xFF == 27:  # ESC para salir
                     break
                 
                 # Guardar la mejor imagen cada vez que se mejora

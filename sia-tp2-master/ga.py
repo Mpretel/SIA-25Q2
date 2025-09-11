@@ -4,16 +4,18 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 import random, os, time
 import cv2
-import shutil
 
-
-from constants import MIN_RGB, MAX_RGB, MIN_ALPHA, MAX_ALPHA, SEED
+from constants import MIN_ALPHA, MAX_ALPHA, MIN_AREA, SEED
 
 if SEED is not None:
     random.seed(SEED)
     np.random.seed(SEED)
-
     
+def triangle_area(coords):
+    # coords = [x1,y1, x2,y2, x3,y3]
+    x1, y1, x2, y2, x3, y3 = map(float, coords) 
+    return abs(0.5 * (x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2)))
+
 # ---------------------------
 # Clase que representa un individuo
 # ---------------------------
@@ -30,13 +32,19 @@ class Individual:
 
             for i in range(n_triangles):
                 # RGBA con límites específicos
-                r = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                g = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                b = np.random.randint(MIN_RGB, MAX_RGB + 1)
+                r, g, b = np.random.randint(0, 256, size=3)
                 a = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
 
+                # 3 vértices (X,Y) ∈ [0, 255], con área mínima
+                if MIN_AREA:
+                    while True:
+                        coords = np.random.randint(0, 256, size=6)
+                        if triangle_area(coords) >= MIN_AREA:
+                            break
+
                 # 3 vértices (X,Y) ∈ [0, 255]
-                coords = np.random.randint(0, 256, size=6)
+                else:
+                    coords = np.random.randint(0, 256, size=6)
 
                 # Guardar en el gen i
                 self.genes[i] = np.array([r, g, b, a, *coords], dtype=np.uint8)
@@ -276,12 +284,18 @@ class GeneticAlgorithm:
                 triangle = individual.genes[idx]
                 for j in range(10):  # cada triángulo tiene 10 componentes
                     if random.random() < mutation_rate:
-                        if j in [0, 1, 2]:  # R, G, B
-                            triangle[j] = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                        elif j == 3:  # Alpha
+                        if j == 3:  # Alpha
                             triangle[j] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
-                        else:  # X Y coord
+                        else:  # RGB, X Y coord
                             triangle[j] = np.random.randint(0, 256)
+                
+                if MIN_AREA:
+                    # asegurar que el triángulo resultante tenga área mínima
+                    while triangle_area(triangle[4:]) < MIN_AREA:
+                        xs = np.random.randint(0, 256, size=3)
+                        ys = np.random.randint(0, 256, size=3)
+                        triangle[4:] = np.array([*xs, *ys], dtype=np.uint8)
+                                    
                 individual.genes[idx] = triangle
 
         # Uniform multi-gene mutation: mutate each gene with a probability defined by mutation rate
@@ -290,13 +304,18 @@ class GeneticAlgorithm:
                 if random.random() < mutation_rate:
                     # randomly select one of the 10 components to mutate
                     j = np.random.randint(0, 10)
-                    if j in [0, 1, 2]:  # R, G, B
-                        triangle[j] = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                    elif j == 3:  # Alpha
+                    if j == 3:  # Alpha
                         triangle[j] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
-                    else:  # X Y coord
+                    else:  # RGB, X Y coord
                         triangle[j] = np.random.randint(0, 256)
                     
+                    if MIN_AREA:
+                        # asegurar que el triángulo resultante tenga área mínima
+                        while triangle_area(triangle[4:]) < MIN_AREA:
+                            xs = np.random.randint(0, 256, size=3)
+                            ys = np.random.randint(0, 256, size=3)
+                            triangle[4:] = np.array([*xs, *ys], dtype=np.uint8)
+
         elif self.mutation_method["name"] == "complete":
             flat = individual.genes.reshape(-1)
             mask = np.random.rand(flat.size) < mutation_rate
@@ -306,16 +325,23 @@ class GeneticAlgorithm:
     
             for i in range(flat.size):
                 if mask[i]:
-                    pos_in_triangle = i % 10  # cada triángulo tiene 10 valores
-                    if pos_in_triangle in [0, 1, 2]:  # R, G, B
-                        flat[i] = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                    elif pos_in_triangle == 3:  # Alpha
+                    j = i % 10  # cada triángulo tiene 10 valores
+                    if j == 3:  # Alpha
                         flat[i] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
-                    else:  # X Y coord
+                    else:  # RGB, X Y coord
                         flat[i] = np.random.randint(0, 256)
 
             individual.genes = flat.reshape(individual.genes.shape)
             
+            # --- chequeo área mínima en todos los triángulos ---
+            for triangle in individual.genes:
+                if triangle_area(triangle[4:10]) < MIN_AREA:
+                    while True:
+                        coords = np.random.randint(0, 256, size=6)
+                        if triangle_area(coords) >= MIN_AREA:
+                            triangle[4:10] = coords
+                            break
+                        
     def create_new_generation(self, criteria, selection_method, current_population, kids):
         """
         Creates a new generation based on the specified criteria and selection method.
@@ -376,6 +402,10 @@ class GeneticAlgorithm:
             if gen_best.fitness > self.best_fitness:
                 self.best = gen_best
                 self.best_fitness = gen_best.fitness
+
+                # print best triangle areas
+                areas = [triangle_area(triangle[4:]) for triangle in self.best.genes]
+                print(f"New best fitness: {self.best_fitness:.4f} | Areas: min {min(areas):.1f}, max {max(areas):.1f}, avg {np.mean(areas):.1f}")
 
                 # Mostrar las dos imágenes
                 img1_rgb = np.array(gen_best.render().convert("RGB"))

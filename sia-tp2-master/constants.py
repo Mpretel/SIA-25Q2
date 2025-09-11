@@ -2,7 +2,11 @@ CONFIGS_DIR = "configs"
 INPUT_IMAGES_DIR = "input_images"
 OUTPUT_IMAGES_DIR = "ga_output"
 
+SCALE_FACTOR = 3
+
 MIN_RGB = 0
 MAX_RGB = 255
-MIN_ALPHA = 10
+MIN_ALPHA = 0
 MAX_ALPHA = 255
+
+SEED = 43

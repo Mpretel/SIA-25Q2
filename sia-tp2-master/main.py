@@ -4,7 +4,7 @@ import argparse
 from ga import GeneticAlgorithm
 from PIL import Image
 
-from constants import CONFIGS_DIR, INPUT_IMAGES_DIR, OUTPUT_IMAGES_DIR
+from constants import CONFIGS_DIR, INPUT_IMAGES_DIR, OUTPUT_IMAGES_DIR, SCALE_FACTOR
 
 def main():
 
@@ -51,10 +51,9 @@ def main():
         n_triangles = int(input("\nIngrese la cantidad de triángulos: "))
 
     # Obtener tamaño de la imagen target
-    scale_factor = 2  # lo tenías como i=2
     with Image.open(target_path) as img:
         w, h = img.size
-        canvas_size = (w // scale_factor, h // scale_factor)
+        canvas_size = (w // SCALE_FACTOR, h // SCALE_FACTOR)
 
     # Crear carpeta de salida si no existe
     if not os.path.exists(OUTPUT_IMAGES_DIR):

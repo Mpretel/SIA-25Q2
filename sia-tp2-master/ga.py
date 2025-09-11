@@ -4,9 +4,16 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 import random, os, time
 import cv2
+import shutil
 
-from constants import MIN_RGB, MAX_RGB, MIN_ALPHA, MAX_ALPHA
 
+from constants import MIN_RGB, MAX_RGB, MIN_ALPHA, MAX_ALPHA, SEED
+
+if SEED is not None:
+    random.seed(SEED)
+    np.random.seed(SEED)
+
+    
 # ---------------------------
 # Clase que representa un individuo
 # ---------------------------
@@ -80,6 +87,7 @@ class Individual:
         mae = np.mean(np.abs(r - t))
         #sim = 1/mae  # entre 0 y 1
         sim = 1.0 - (mae / 255.0)
+        #sim = - np.log(mae/255.)
         self.fitness = sim
         return sim
 
@@ -88,16 +96,12 @@ class Individual:
 # ---------------------------
 class GeneticAlgorithm:
     def __init__(self, target_path, canvas_size, n_triangles, pop_size, kids_size,
-                 parents_selection_method, crossover_criteria, mutation_method, new_gen_creation_criteria, new_gen_selection_method, end_criteria, out_dir, k_threshold=0.7):
+                 parents_selection_method, crossover_criteria, mutation_method, new_gen_creation_criteria, new_gen_selection_method, end_criteria, out_dir):
         self.target_path = target_path
         self.canvas_size = canvas_size
         self.n_triangles = n_triangles
         self.pop_size = pop_size
-        self.kids_size = kids_size 
-        # kids_size debe ser par, sino se descarta el último
-        if self.kids_size % 2 != 0:
-            self.kids_size -= 1
-            print(f"kids_size debe ser par, se ajusta a {self.kids_size}")
+        self.kids_size = kids_size
         self.parents_selection_method = parents_selection_method
         self.crossover_method = crossover_criteria["method"]
         self.crossover_rate = crossover_criteria["crossover_rate"]
@@ -110,10 +114,11 @@ class GeneticAlgorithm:
         self.target_img = Image.open(target_path).convert('RGB').resize(canvas_size, Image.LANCZOS)
         self.target_rgb = np.array(self.target_img, dtype=np.uint8)
 
+        self.gen = 0
         self.population = [Individual(n_triangles, canvas_size) for _ in range(pop_size)]
         self.best = None
         self.best_fitness = -1
-    
+
     def select(self, individuals, k, method):
         """
         Selects k individuals based on the specified selection method.
@@ -128,7 +133,7 @@ class GeneticAlgorithm:
 
         # Elitismo
         if method["name"] == "elitism":
-            # que pasa si k > pop_size?
+            # si k > N, devuelve solo los N individuos
             sorted_pop = sorted(individuals, key=lambda individual: individual.fitness, reverse=True)
             return sorted_pop[:k]
 
@@ -181,7 +186,7 @@ class GeneticAlgorithm:
         
         # Boltzmann
         elif method["name"] == "boltzmann":
-            T = method["T"]  # temperatura --> en funcion de la generación?
+            T = method["Tc"] - (method["T0"] - method["Tc"]) * np.exp(-self.gen * method["decay"])  # temperatura decreciente
             exp_fitness = np.exp([individual.fitness / T for individual in individuals])
             probs = exp_fitness / np.sum(exp_fitness)
             chosen = np.random.choice(individuals, size=k, replace=True, p=probs)
@@ -259,7 +264,7 @@ class GeneticAlgorithm:
         Mutation changes both color (RGBA) and position (XY) if mutation rate is applied.
         """
         mutation_rate = self.mutation_method["mutation_rate"]
-
+                   
         # Limited multi-gene mutation: selects M genes to mutate with given mutation rate
         if self.mutation_method["name"] == "limited_multigene":
             M = self.mutation_method["M"]
@@ -268,30 +273,49 @@ class GeneticAlgorithm:
             gene_indices = np.random.choice(self.n_triangles, M, replace=False)
 
             for idx in gene_indices:
-                if random.random() < mutation_rate:
-                    # Nuevo triángulo con restricciones
-                    r = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                    g = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                    b = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                    a = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
-                    coords = np.random.randint(0, 256, size=6)
-                    individual.genes[idx] = np.array([r, g, b, a, *coords], dtype=np.uint8)
-
-                    #individual.genes[idx] = np.random.randint(0, 256, size=individual.genes[idx].shape, dtype=np.uint8)
+                triangle = individual.genes[idx]
+                for j in range(10):  # cada triángulo tiene 10 componentes
+                    if random.random() < mutation_rate:
+                        if j in [0, 1, 2]:  # R, G, B
+                            triangle[j] = np.random.randint(MIN_RGB, MAX_RGB + 1)
+                        elif j == 3:  # Alpha
+                            triangle[j] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
+                        else:  # X Y coord
+                            triangle[j] = np.random.randint(0, 256)
+                individual.genes[idx] = triangle
 
         # Uniform multi-gene mutation: mutate each gene with a probability defined by mutation rate
         elif self.mutation_method["name"] == "uniform_multigene":
             for triangle in individual.genes:
                 if random.random() < mutation_rate:
-                    # R, G, B
-                    for i in [0, 1, 2]:
-                        triangle[i] = np.random.randint(MIN_RGB, MAX_RGB + 1)
-                    # alpha
-                    triangle[3] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
-                    # coordenadas X, Y
-                    for i in range(4, 10):
-                        triangle[i] = np.random.randint(0, 256)
+                    # randomly select one of the 10 components to mutate
+                    j = np.random.randint(0, 10)
+                    if j in [0, 1, 2]:  # R, G, B
+                        triangle[j] = np.random.randint(MIN_RGB, MAX_RGB + 1)
+                    elif j == 3:  # Alpha
+                        triangle[j] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
+                    else:  # X Y coord
+                        triangle[j] = np.random.randint(0, 256)
+                    
+        elif self.mutation_method["name"] == "complete":
+            flat = individual.genes.reshape(-1)
+            mask = np.random.rand(flat.size) < mutation_rate
+            flat[mask] = np.random.randint(0, 256, size=mask.sum(), dtype=np.uint8)
+            # separar el random del alpha para que tome los valores correctos
+            individual.genes = flat.reshape(individual.genes.shape)
     
+            for i in range(flat.size):
+                if mask[i]:
+                    pos_in_triangle = i % 10  # cada triángulo tiene 10 valores
+                    if pos_in_triangle in [0, 1, 2]:  # R, G, B
+                        flat[i] = np.random.randint(MIN_RGB, MAX_RGB + 1)
+                    elif pos_in_triangle == 3:  # Alpha
+                        flat[i] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
+                    else:  # X Y coord
+                        flat[i] = np.random.randint(0, 256)
+
+            individual.genes = flat.reshape(individual.genes.shape)
+            
     def create_new_generation(self, criteria, selection_method, current_population, kids):
         """
         Creates a new generation based on the specified criteria and selection method.
@@ -300,8 +324,12 @@ class GeneticAlgorithm:
         - 'traditional': selects the new generation from the combined pool of current population and kids based on selection method.
         """
         if criteria == "young_bias":
-            # que pasa si kids_size > pop_size?
-            new_generation = kids + self.select(individuals=current_population, k=self.pop_size-self.kids_size, method=selection_method)
+            if self.kids_size == self.pop_size:
+                new_generation = kids
+            elif self.kids_size > self.pop_size:
+                new_generation = self.select(individuals=kids, k=self.pop_size, method=selection_method)
+            else: # k < N
+                new_generation = kids + self.select(individuals=current_population, k=self.pop_size-self.kids_size, method=selection_method)
 
         elif criteria == "traditional":
             new_generation = self.select(individuals=current_population+kids, k=self.pop_size, method=selection_method)
@@ -309,15 +337,15 @@ class GeneticAlgorithm:
         return new_generation
 
     # Graficar evolución del fitness
-    def plot_fitness(self):
+    def plot_fitness(self, output_path):
         plt.figure(figsize=(8, 5))
         plt.plot(range(1, len(self.best_fit_history)+1), self.best_fit_history, marker="o")
         plt.title("Evolución del fitness")
         plt.xlabel("Generación")
         plt.ylabel("Best fitness")
         plt.grid(True)
-        plt.savefig(os.path.join(self.out_dir, "fitness_evolution.png"))
-        plt.show()
+        plt.savefig(output_path)
+        plt.close()
 
     def evaluate_end_criteria(self, gen, start_time):
         if self.end_criteria["name"] == "generations":
@@ -332,10 +360,10 @@ class GeneticAlgorithm:
 
     # Ejecuta el algoritmo genético
     def run(self):
-        start_time = time.time()        
-        gen = 0
 
-        while not self.evaluate_end_criteria(gen, start_time):
+        start_time = time.time()        
+
+        while not self.evaluate_end_criteria(self.gen, start_time):
             # Evaluar población
             for individual in self.population:
                 if individual.fitness is None:
@@ -349,29 +377,27 @@ class GeneticAlgorithm:
                 self.best = gen_best
                 self.best_fitness = gen_best.fitness
 
-                # Actualizar la figura en tiempo real
-                img_rgb = np.array(gen_best.render().convert("RGB"))
-                img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
-                cv2.imshow("Best Individual", img_bgr)
-                if cv2.waitKey(1000) & 0xFF == 27:  # 100 ms, ESC para salir
+                # Mostrar las dos imágenes
+                img1_rgb = np.array(gen_best.render().convert("RGB"))
+                img1_bgr = cv2.cvtColor(img1_rgb, cv2.COLOR_RGB2BGR)
+                img2_bgr = cv2.cvtColor(self.target_rgb, cv2.COLOR_RGB2BGR)
+                combined = np.hstack((img1_bgr, img2_bgr))
+                cv2.imshow("Best vs Target", combined)
+                if cv2.waitKey(100) & 0xFF == 27:  # ESC para salir
                     break
-
+                
                 # Guardar la mejor imagen cada vez que se mejora
-                self.best.render().save(os.path.join(self.out_dir, f'best_gen{gen:05d}.png'))
+                self.best.render().save(os.path.join(self.out_dir, f'best_gen{self.gen:05d}.png'))
 
-            if gen % 10 == 0 or gen == 0: # cada 10 generaciones se imprime el fitness
+            if self.gen % 10 == 0 or self.gen == 0: # cada 10 generaciones se imprime el fitness
                 elapsed = time.time() - start_time
-                print(f"Gen {gen:4d} | best {gen_best.fitness:.2f} | overall {self.best_fitness:.2f} | {elapsed:.1f}s")
+                print(f"Gen {self.gen:4d} | best {gen_best.fitness:.2f} | overall {self.best_fitness:.2f} | {elapsed:.1f}s")
 
             # Se seleccionan los k padres a cruzar
-            parents_to_breed = self.select(individuals=self.population, k=self.kids_size, method=self.parents_selection_method)
+            parents_to_breed = self.select(individuals=self.population, k=self.kids_size, method=self.parents_selection_method, gen=self.gen)
 
             # Nueva población
             kids = []
-
-            # Elitismo
-            #elites = sorted(self.population, key=lambda individual: individual.fitness, reverse=True)[:self.elitism]
-            #kids.extend([Individual(self.n_triangles, self.canvas_size, genes=e.genes.copy()) for e in elites])
 
             # Recorrer de a pares de padres (k/2 pares)
             for i in range(0, len(parents_to_breed), 2):
@@ -394,11 +420,18 @@ class GeneticAlgorithm:
             # Selección de la nueva generación:
             self.population = self.create_new_generation(criteria=self.new_gen_creation_criteria, selection_method=self.new_gen_selection_method, current_population=self.population, kids=kids)
 
-            gen += 1
-        
+            self.gen += 1
+
         cv2.destroyAllWindows()
 
         print("Finalizado. Mejor similarity:", np.round(self.best_fitness, 3))
-        # print("Finalizado. Mejor similarity:", self.best_fitness, "->", self.best_fitness * 100.0, "%") normalizado
-        self.plot_fitness()
-        self.best.render().save("best_final.png")
+        # Grafica evolución del fitness
+        self.plot_fitness(os.path.join(self.out_dir, "fitness_evolution.png"))
+        # Guarda la mejor compresion final
+        self.best.render().save(os.path.join(self.out_dir, "best_final.png"))
+        # Guarda copia del archivo de config en la carpeta de outputs
+        shutil.copy("config.json", os.path.join(self.out_dir, "config.json"))
+        # Guardar un txt con los triangulos del mejor individuo
+        with open(os.path.join(self.out_dir, "best_triangles.txt"), "w") as f:
+            for triangle in self.best.genes:
+                f.write(','.join(map(str, triangle)) + '\n')

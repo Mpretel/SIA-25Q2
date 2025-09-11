@@ -394,7 +394,7 @@ class GeneticAlgorithm:
                 print(f"Gen {self.gen:4d} | best {gen_best.fitness:.2f} | overall {self.best_fitness:.2f} | {elapsed:.1f}s")
 
             # Se seleccionan los k padres a cruzar
-            parents_to_breed = self.select(individuals=self.population, k=self.kids_size, method=self.parents_selection_method, gen=self.gen)
+            parents_to_breed = self.select(individuals=self.population, k=self.kids_size, method=self.parents_selection_method)
 
             # Nueva población
             kids = []
@@ -429,8 +429,6 @@ class GeneticAlgorithm:
         self.plot_fitness(os.path.join(self.out_dir, "fitness_evolution.png"))
         # Guarda la mejor compresion final
         self.best.render().save(os.path.join(self.out_dir, "best_final.png"))
-        # Guarda copia del archivo de config en la carpeta de outputs
-        shutil.copy("config.json", os.path.join(self.out_dir, "config.json"))
         # Guardar un txt con los triangulos del mejor individuo
         with open(os.path.join(self.out_dir, "best_triangles.txt"), "w") as f:
             for triangle in self.best.genes:

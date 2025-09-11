@@ -3,6 +3,7 @@ import json
 import argparse
 from ga import GeneticAlgorithm
 from PIL import Image
+import shutil
 
 from constants import CONFIGS_DIR, INPUT_IMAGES_DIR, OUTPUT_IMAGES_DIR, SCALE_FACTOR
 
@@ -12,12 +13,14 @@ def main():
     parser.add_argument("--config", type=str, required=True, help="Nombre del archivo JSON de configuración")
     args = parser.parse_args()
 
+    config_name = args.config
+
     # agregar el .json a la ruta si no lo tiene
-    if not args.config.endswith(".json"):
-        args.config += ".json"
+    if not config_name.endswith(".json"):
+        config_name += ".json"
 
     # Validar que el archivo de configuración existe en la carpeta llamada configs
-    config_path = os.path.join(CONFIGS_DIR, args.config)
+    config_path = os.path.join(CONFIGS_DIR, config_name)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"\nNo se encontró el archivo de configuración {config_path}")
 
@@ -65,6 +68,9 @@ def main():
     run_output_path = os.path.join(OUTPUT_IMAGES_DIR, run_output_dir)
     if not os.path.exists(run_output_path):
         os.makedirs(run_output_path)
+
+    # Guarda copia del archivo de config en la carpeta de outputs
+    shutil.copy(config_path, os.path.join(run_output_path, "config.json"))
 
     # Crear GA con los hiperparámetros del config
     ga = GeneticAlgorithm(

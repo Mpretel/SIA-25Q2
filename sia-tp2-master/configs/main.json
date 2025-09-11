@@ -2,26 +2,26 @@
   "pop_size": 30,
   "kids_size": 20,
   "parents_selection_method": {
-    "name": "tournament",
-    "k": 5
+    "name": "roulette"
   },
-  "crossover": {
+  "crossover_criteria": {
     "method": {
       "name": "uniform",
-      "rate": 0.5
+      "p": 0.5
       },
-    "crossover_rate": 0.7
+    "crossover_rate": 0.5
   },
-  "mutation": {
-    "method": "complete",
+  "mutation_method": {
+    "name": "limited_multigene",
+    "M": 3,
     "mutation_rate": 0.1
   },
-  "new_generation_selection_method": {
-    "name": "tournament",
-    "k": 5
+  "new_gen_creation_criteria": "traditional",
+  "new_gen_selection_method": {
+    "name": "elitism"
   },
   "end_criteria": {
-    "name": "generations",
-    "value": 500
+    "name": "fitness",
+    "value": 0.9
   }
 }

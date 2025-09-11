@@ -75,9 +75,10 @@ def main():
         pop_size=config["pop_size"],
         kids_size=config["kids_size"],
         parents_selection_method=config["parents_selection_method"],
-        crossover_method=config["crossover_method"],
+        crossover_criteria=config["crossover_criteria"],
         mutation_method=config["mutation_method"],
-        gen_selection_method=config["gen_selection_method"],
+        new_gen_creation_criteria=config["new_gen_creation_criteria"],
+        new_gen_selection_method=config["new_gen_selection_method"],
         end_criteria=config["end_criteria"],
         out_dir=run_output_path
     )

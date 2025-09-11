@@ -1,10 +1,28 @@
 {
-  "canvas_size": [1141, 665],
   "pop_size": 15,
   "kids_size": 20,
-  "generations": 300,
-  "crossover_rate": 0.7,
-  "mutation_rate": 0.05,
-  "elitism": 0,
-  "tournament_k": 3
+  "parents_selection_method": {
+    "name": "deterministic_tournament",
+    "M": 3
+  },
+  "crossover_criteria": {
+    "method": {
+      "name": "uniform",
+      "p": 0.7
+      },
+    "crossover_rate": 0.7
+  },
+  "mutation": {
+    "method": "complete",
+    "mutation_rate": 0.05
+  },
+  "new_gen_creation_criteria": "young_bias",
+    "new_gen_selection_method": {
+      "name": "deterministic_tournament",
+      "M": 3
+    },
+  "end_criteria": {
+    "name": "generations",
+    "value": 300
+  }
 }

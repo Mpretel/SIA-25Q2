@@ -18,6 +18,9 @@ class Individual:
         self.canvas_size = canvas_size
         # Los genes se inicializan aleatoriamente...
         if genes is None:
+            # Inicializar un array vacío para todos los triángulos
+            self.genes = np.zeros((n_triangles, 10), dtype=np.uint8)
+
             for i in range(n_triangles):
                 # RGBA con límites específicos
                 r = np.random.randint(MIN_RGB, MAX_RGB + 1)
@@ -28,7 +31,7 @@ class Individual:
                 # 3 vértices (X,Y) ∈ [0, 255]
                 coords = np.random.randint(0, 256, size=6)
 
-                # Guardar en el gen
+                # Guardar en el gen i
                 self.genes[i] = np.array([r, g, b, a, *coords], dtype=np.uint8)
 
             #self.genes = np.random.randint(0, 256, size=(n_triangles, 10), dtype=np.uint8)
@@ -53,8 +56,14 @@ class Individual:
             # Primeras 4 posiciones: RGBA
             r, g, b, a = [int(x) for x in triangle[:4]]
             # Siguientes 6 posiciones: 3x(X,Y) de los vértices
-            xs = [int(triangle[4+i] * (W-1) / 255) for i in range(3)]
-            ys = [int(triangle[7+i] * (H-1) / 255) for i in range(3)]
+            xs = [int(triangle[4] * (W-1) / 255),
+                int(triangle[6] * (W-1) / 255),
+                int(triangle[8] * (W-1) / 255)]
+
+            ys = [int(triangle[5] * (H-1) / 255),
+                int(triangle[7] * (H-1) / 255),
+                int(triangle[9] * (H-1) / 255)]
+            
             poly = list(zip(xs, ys))
             # Dibujar triángulo en una capa aparte y combinar
             layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
@@ -79,7 +88,7 @@ class Individual:
 # ---------------------------
 class GeneticAlgorithm:
     def __init__(self, target_path, canvas_size, n_triangles, pop_size, kids_size,
-                 parents_selection_method, crossover_method, mutation_method, gen_selection_method, end_criteria, out_dir, k_threshold=0.7):
+                 parents_selection_method, crossover_criteria, mutation_method, new_gen_creation_criteria, new_gen_selection_method, end_criteria, out_dir, k_threshold=0.7):
         self.target_path = target_path
         self.canvas_size = canvas_size
         self.n_triangles = n_triangles
@@ -90,9 +99,11 @@ class GeneticAlgorithm:
             self.kids_size -= 1
             print(f"kids_size debe ser par, se ajusta a {self.kids_size}")
         self.parents_selection_method = parents_selection_method
-        self.crossover_method = crossover_method
+        self.crossover_method = crossover_criteria["method"]
+        self.crossover_rate = crossover_criteria["crossover_rate"]
         self.mutation_method = mutation_method
-        self.gen_selection_method = gen_selection_method
+        self.new_gen_creation_criteria = new_gen_creation_criteria
+        self.new_gen_selection_method = new_gen_selection_method
         self.end_criteria = end_criteria
         self.out_dir = out_dir
         self.best_fit_history = []
@@ -106,12 +117,15 @@ class GeneticAlgorithm:
     def select(self, individuals, k, method):
         """
         Selects k individuals based on the specified selection method.
-        Supports 'elitism', 'roulette', 'boltzmann', 'ranking', 'deterministic_tournament', and 'probabilistic_tournament' methods.
+        Supports 'elitism', 'roulette', 'boltzmann', 'ranking', 'universal', 'deterministic_tournament', and 'probabilistic_tournament' methods.
         - 'elitism' selects the top k individuals.
         - 'roulette' selects k individuals based on fitness proportionate selection.
+        - 'ranking' selects k individuals based on their rank.
+        - 'universal' selects k individuals using stochastic universal sampling.
         - 'deterministic_tournament'
         - 'probabilistic_tournament' 
         """
+
         # Elitismo
         if method["name"] == "elitism":
             # que pasa si k > pop_size?
@@ -120,28 +134,80 @@ class GeneticAlgorithm:
 
         # Ruleta
         elif method["name"] == "roulette":
-            total_fit = sum(individual.fitness for individual in individuals)
-            r = random.uniform(0, total_fit)
-            acum = 0
-            for individual in individuals:
-                acum += individual.fitness
-                if acum >= r:
-                    return individual
-            return individuals[-1]
+            total_fitness = sum(individual.fitness for individual in individuals)
+            probs = [individual.fitness / total_fitness for individual in individuals]
+            chosen = np.random.choice(individuals, size=k, replace=True, p=probs)
+            return list(chosen)
+    
+        # Ranking
+        elif method["name"] == "ranking":
+            n = len(individuals)
+            # Orden descendente por fitness → mejor = rank 0
+            sorted_pop = sorted(individuals, key=lambda individual: individual.fitness, reverse=True)
 
+            # Pseudo-aptitud
+            pseudo_fitness = [(n - rank) / n for rank in range(n)]
+
+            total = sum(pseudo_fitness)
+            probs = [pf / total for pf in pseudo_fitness]
+            cumulative = np.cumsum(probs)
+
+            chosen = []
+            for _ in range(k):
+                r = random.random()
+                for i, cum in enumerate(cumulative):
+                    if r <= cum:
+                        chosen.append(sorted_pop[i])
+                        break
+            return chosen
+        
+        # Universal
+        elif method["name"] == "universal":
+            total_fitness = sum(individual.fitness for individual in individuals)
+            probs = [individual.fitness / total_fitness for individual in individuals]
+            cumulative = np.cumsum(probs)
+
+            # Espaciado de 1/k entre cada puntero
+            r = random.random() / k
+            pointers = [(r + j / k) for j in range(k)]
+
+            chosen = []
+            for ptr in pointers:
+                for i, cum in enumerate(cumulative):
+                    if ptr <= cum:
+                        chosen.append(individuals[i])
+                        break
+            return chosen
+        
+        # Boltzmann
+        elif method["name"] == "boltzmann":
+            T = method["T"]  # temperatura --> en funcion de la generación?
+            exp_fitness = np.exp([individual.fitness / T for individual in individuals])
+            probs = exp_fitness / np.sum(exp_fitness)
+            chosen = np.random.choice(individuals, size=k, replace=True, p=probs)
+            return list(chosen)
+        
         # Torneo determinístico
         elif method["name"] == "deterministic_tournament":
-            competitors = random.sample(individuals, self.tournament_k)
-            return max(competitors, key=lambda individual: individual.fitness)
-
+            winners = []
+            for _ in range(k):
+                competitors = random.sample(individuals, method["M"])
+                winner = max(competitors, key=lambda ind: ind.fitness)
+                winners.append(winner)
+            return winners
+        
         # Torneo probabilístico
         elif method["name"] == "probabilistic_tournament":
-            competitors = random.sample(individuals, 2)
-            if random.random() < self.k_threshold:
-                return max(competitors, key=lambda individual: individual.fitness)
-            else:
-                return min(competitors, key=lambda individual: individual.fitness)
-        
+            p = method["p"]  # prob. de elegir el mejor
+            winners = []
+            for _ in range(k):
+                competitors = random.sample(individuals, 2)
+                competitors.sort(key=lambda ind: ind.fitness, reverse=True)
+                if random.random() < p:
+                    winners.append(competitors[0])  # mejor
+                else:
+                    winners.append(competitors[-1])  # peor
+            return winners
 
     def crossover(self, parent_a, parent_b):
         """
@@ -169,9 +235,9 @@ class GeneticAlgorithm:
                 Individual(self.n_triangles, self.canvas_size, genes=child2_genes)
             )
         
-        # Uniform crossover: exchange genes based on given rate
+        # Uniform crossover: exchange genes based on given p
         elif self.crossover_method["name"] == "uniform":
-            mask = np.random.rand(self.n_triangles) < self.crossover_method["rate"]
+            mask = np.random.rand(self.n_triangles) < self.crossover_method["p"]
             
             child1_genes = parent_a.genes.copy()
             child1_genes[mask] = parent_b.genes[mask]
@@ -225,6 +291,22 @@ class GeneticAlgorithm:
                     # coordenadas X, Y
                     for i in range(4, 10):
                         triangle[i] = np.random.randint(0, 256)
+    
+    def create_new_generation(self, criteria, selection_method, current_population, kids):
+        """
+        Creates a new generation based on the specified criteria and selection method.
+        Supports 'young_bias' and 'traditional' criteria.
+        - 'young_bias': keeps all kids and selects the rest from the current population based on selection method.
+        - 'traditional': selects the new generation from the combined pool of current population and kids based on selection method.
+        """
+        if criteria == "young_bias":
+            # que pasa si kids_size > pop_size?
+            new_generation = kids + self.select(individuals=current_population, k=self.pop_size-self.kids_size, method=selection_method)
+
+        elif criteria == "traditional":
+            new_generation = self.select(individuals=current_population+kids, k=self.pop_size, method=selection_method)
+
+        return new_generation
 
     # Graficar evolución del fitness
     def plot_fitness(self):
@@ -234,6 +316,7 @@ class GeneticAlgorithm:
         plt.xlabel("Generación")
         plt.ylabel("Best fitness")
         plt.grid(True)
+        plt.savefig(os.path.join(self.out_dir, "fitness_evolution.png"))
         plt.show()
 
     def evaluate_end_criteria(self, gen, start_time):
@@ -302,16 +385,17 @@ class GeneticAlgorithm:
                 self.mutate(child1)
                 self.mutate(child2)
 
+                child1.evaluate_fitness(self.target_rgb)
+                child2.evaluate_fitness(self.target_rgb)
+
                 kids.append(child1)
                 kids.append(child2)
-                
 
-            # Selección/ sesgo joven o tradicional según aptitud
-
-            self.population = kids
+            # Selección de la nueva generación:
+            self.population = self.create_new_generation(criteria=self.new_gen_creation_criteria, selection_method=self.new_gen_selection_method, current_population=self.population, kids=kids)
 
             gen += 1
-
+        
         cv2.destroyAllWindows()
 
         print("Finalizado. Mejor similarity:", np.round(self.best_fitness, 3))

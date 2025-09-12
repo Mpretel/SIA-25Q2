@@ -11,3 +11,7 @@ MIN_AREA = 100
 MAX_AREA = 10000
 
 SEED = 43
+
+RGB = False
+
+DELTA = 10

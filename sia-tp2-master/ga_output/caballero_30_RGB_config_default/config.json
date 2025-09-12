@@ -1,0 +1,26 @@
+{
+  "pop_size": 50,
+  "kids_size": 30,
+  "parents_selection_method": {
+    "name": "roulette"
+  },
+  "crossover_criteria": {
+    "method": {
+      "name": "uniform",
+      "p": 0.5
+      },
+    "crossover_rate": 0.5
+  },
+  "mutation_method": {
+    "name": "uniform_multigene",
+    "mutation_rate": 0.05
+  },
+  "new_gen_creation_criteria": "traditional",
+  "new_gen_selection_method": {
+    "name": "elitism"
+  },
+  "end_criteria": {
+    "name": "generations",
+    "value": 3000
+  }
+}

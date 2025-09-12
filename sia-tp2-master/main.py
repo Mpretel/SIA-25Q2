@@ -5,7 +5,7 @@ from ga import GeneticAlgorithm
 from PIL import Image
 import shutil
 
-from constants import CONFIGS_DIR, INPUT_IMAGES_DIR, OUTPUT_IMAGES_DIR, SCALE_FACTOR
+from constants import CONFIGS_DIR, INPUT_IMAGES_DIR, OUTPUT_IMAGES_DIR, SCALE_FACTOR, RGB
 
 def main():
 
@@ -64,7 +64,11 @@ def main():
     
     # Crear una carpeta dentro de OUTPUT_IMAGES_DIR para esta corrida con el nombre de la imagen y n_triángulos
     image_filename = os.path.splitext(images[choice])[0]
-    run_output_dir = f"{image_filename}_{n_triangles}_config_{os.path.splitext(os.path.basename(args.config))[0]}"
+    if RGB:
+        color_mode = "RGB"
+    else:
+        color_mode = "HSV"
+    run_output_dir = f"{image_filename}_{n_triangles}_{color_mode}_config_{os.path.splitext(os.path.basename(args.config))[0]}"
     run_output_path = os.path.join(OUTPUT_IMAGES_DIR, run_output_dir)
     if not os.path.exists(run_output_path):
         os.makedirs(run_output_path)

@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 import random, os, time
 import cv2
 
-from constants import MIN_ALPHA, MAX_ALPHA, MIN_AREA, MAX_AREA, SEED
+from constants import MIN_ALPHA, MAX_ALPHA, MIN_AREA, MAX_AREA, SEED, RGB, DELTA
 
 if SEED is not None:
     random.seed(SEED)
@@ -31,8 +31,11 @@ class Individual:
             self.genes = np.zeros((n_triangles, 10), dtype=np.uint8)
 
             for i in range(n_triangles):
-                # RGBA con límites específicos
-                r, g, b = np.random.randint(0, 256, size=3)
+                if RGB:
+                    # RGBA con límites específicos
+                    r, g, b = np.random.randint(0, 256, size=3)
+                else:
+                    h, s, v = np.random.randint(0, 256, size=3)
                 a = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
 
                 # 3 vértices (X,Y) ∈ [0, 255], con área mínima
@@ -46,7 +49,10 @@ class Individual:
                     coords = np.random.randint(0, 256, size=6)
 
                 # Guardar en el gen i
-                self.genes[i] = np.array([r, g, b, a, *coords], dtype=np.uint8)
+                if RGB:
+                    self.genes[i] = np.array([r, g, b, a, *coords], dtype=np.uint8)
+                else:
+                    self.genes[i] = np.array([h, s, v, a, *coords], dtype=np.uint8)
 
             #self.genes = np.random.randint(0, 256, size=(n_triangles, 10), dtype=np.uint8)
         
@@ -67,8 +73,13 @@ class Individual:
 
         for triangle in sorted_genes:
             triangle = triangle.astype(np.int32)
-            # Primeras 4 posiciones: RGBA
-            r, g, b, a = [int(x) for x in triangle[:4]]
+            if RGB:
+                # Primeras 4 posiciones: RGBA
+                r, g, b, a = [int(x) for x in triangle[:4]]
+            else:
+                h, s, v, a = [int(x) for x in triangle[:4]]
+                h = int(h * 179 / 255)  # OpenCV usa h ∈ [0,179]
+                r, g, b = [int(c) for c in cv2.cvtColor(np.uint8([[[h, s, v]]]), cv2.COLOR_HSV2RGB)[0][0]]
             # Siguientes 6 posiciones: 3x(X,Y) de los vértices
             xs = [int(triangle[4] * (W-1) / 255),
                 int(triangle[6] * (W-1) / 255),
@@ -285,8 +296,13 @@ class GeneticAlgorithm:
                     if random.random() < mutation_rate:
                         if j == 3:  # Alpha
                             triangle[j] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
-                        else:  # RGB, X Y coord
+                        elif j > 3: # X Y coord
                             triangle[j] = np.random.randint(0, 256)
+                        else:
+                            if DELTA:
+                                triangle[j] = np.clip(int(triangle[j])+np.random.randint(-DELTA, DELTA),0,255)
+                            else:
+                                triangle[j] = np.random.randint(0, 256)
                 
                 if MIN_AREA or MAX_AREA:
                     # asegurar que el triángulo resultante tenga área mínima
@@ -305,8 +321,13 @@ class GeneticAlgorithm:
                     j = np.random.randint(0, 10)
                     if j == 3:  # Alpha
                         triangle[j] = np.random.randint(MIN_ALPHA, MAX_ALPHA + 1)
-                    else:  # RGB, X Y coord
+                    elif j > 3: # X Y coord
                         triangle[j] = np.random.randint(0, 256)
+                    else:
+                        if DELTA:
+                            triangle[j] = np.clip(int(triangle[j])+np.random.randint(-DELTA, DELTA),0,255)
+                        else:
+                            triangle[j] = np.random.randint(0, 256)
                     
                     if MIN_AREA or MAX_AREA:
                         # asegurar que el triángulo resultante tenga área mínima

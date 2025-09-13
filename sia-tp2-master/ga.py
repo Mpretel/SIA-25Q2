@@ -479,3 +479,8 @@ class GeneticAlgorithm:
         with open(os.path.join(self.out_dir, "best_triangles.txt"), "w") as f:
             for triangle in self.best.genes:
                 f.write(','.join(map(str, triangle)) + '\n')
+        # Guardar el fitness de cada generación en un csv
+        with open(os.path.join(self.out_dir, "fitness_evolution.csv"), "w") as f:
+            f.write("generation,best_fitness\n")
+            for gen, fit in enumerate(self.best_fit_history):
+                f.write(f"{gen},{fit}\n")

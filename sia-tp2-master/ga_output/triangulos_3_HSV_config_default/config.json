@@ -1,8 +1,11 @@
 {
-  "pop_size": 50,
-  "kids_size": 30,
+  "pop_size": 30,
+  "kids_size": 10,
   "parents_selection_method": {
-    "name": "roulette"
+    "name": "boltzmann",
+    "T0": 100,
+    "Tc": 70,
+    "decay": 1
   },
   "crossover_criteria": {
     "method": {
@@ -13,14 +16,14 @@
   },
   "mutation_method": {
     "name": "uniform_multigene",
-    "mutation_rate": 0.05
+    "mutation_rate": 0.1
   },
   "new_gen_creation_criteria": "traditional",
   "new_gen_selection_method": {
-    "name": "elitism"
+    "name": "universal"
   },
   "end_criteria": {
     "name": "generations",
-    "value": 3000
+    "value": 1000
   }
 }

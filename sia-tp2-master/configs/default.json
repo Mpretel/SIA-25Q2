@@ -24,6 +24,6 @@
   },
   "end_criteria": {
     "name": "generations",
-    "value": 3000
+    "value": 1000
   }
 }

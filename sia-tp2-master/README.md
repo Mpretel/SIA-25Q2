@@ -114,3 +114,9 @@ Al finalizar el programa (de acuerdo al criterio de corte configurado), la conso
 Finalizado. Mejor similarity: 0.857
 ```
 y se guardará en el directorio de salida (ga_output) una carpeta con la mejor imagen generada (best_final.png) junto con la información de todos los triángulos que la componen (best_triangles.txt) y la evolución del fitness (fitness_evolution.png).
+
+
+---
+
+## Presentación
+Link a la presentación: https://docs.google.com/presentation/d/1znDHOBuLGcfsTwtjQj888bcL62yhgXq9YDnWF2KBpcY/edit?usp=sharing 

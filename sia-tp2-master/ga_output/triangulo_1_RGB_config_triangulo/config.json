@@ -12,8 +12,8 @@
       },
     "crossover_rate": 0.7
   },
-  "mutation": {
-    "method": "complete",
+  "mutation_method": {
+    "name": "complete",
     "mutation_rate": 0.05
   },
   "new_gen_creation_criteria": "young_bias",

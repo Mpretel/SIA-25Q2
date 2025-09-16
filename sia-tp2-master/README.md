@@ -50,7 +50,7 @@ Contiene la configuración de la estructura propia del algoritmo genético:
     "T0": 120, # T0 (boltzmann)
     "decay": 1, # decay (boltzmann)
     "M": 5, # Cantidad de individuos M de N (deterministic_tournament)
-    "p": threshold (probabilistic_tournament)
+    "p": 0.5 threshold (probabilistic_tournament)
   },
   "crossover_criteria": {
     "method": {

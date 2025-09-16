@@ -9,60 +9,62 @@ from constants import CONFIGS_DIR, INPUT_IMAGES_DIR, OUTPUT_IMAGES_DIR, SCALE_FA
 
 def main():
 
+    # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Algoritmo genético de triángulos")
     parser.add_argument("--config", type=str, required=True, help="Nombre del archivo JSON de configuración")
     args = parser.parse_args()
 
     config_name = args.config
 
-    # agregar el .json a la ruta si no lo tiene
+    # Add ".json" extension if the user didn’t include it
     if not config_name.endswith(".json"):
         config_name += ".json"
 
-    # Validar que el archivo de configuración existe en la carpeta llamada configs
+    # Validate that the configuration file exists inside the "configs" folder
     config_path = os.path.join(CONFIGS_DIR, config_name)
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"\nNo se encontró el archivo de configuración {config_path}")
 
-    # Cargar json
+    # Load the configuration JSON
     with open(config_path, "r") as f:
         config = json.load(f)
 
-    # Buscar imágenes en carpeta input_images
+    # Validate that the input images folder exists
     if not os.path.exists(INPUT_IMAGES_DIR):
         raise FileNotFoundError(f"\nNo se encontró la carpeta {INPUT_IMAGES_DIR}")
 
+    # Get all image files in input_images (PNG, JPG, JPEG)
     images = [f for f in os.listdir(INPUT_IMAGES_DIR) if f.lower().endswith((".png", ".jpg", ".jpeg"))]
     if not images:
         raise FileNotFoundError(f"\nNo hay imágenes en {INPUT_IMAGES_DIR}")
 
-    # Mostrar lista de imágenes
+    # Show available images to the user
     print("\nImágenes disponibles:")
     for i, img in enumerate(images):
         print(f"[{i}] {img}")
 
-    # Select an image
+    # Ask the user to choose one image
     choice = -1
     while choice < 0 or choice >= len(images):
         choice = int(input("\nElige el número de la imagen a usar: "))
 
     target_path = os.path.join(INPUT_IMAGES_DIR, images[choice])
 
-    # Preguntar cantidad de triángulos
+    # Ask the user for the number of triangles
     n_triangles = 0
     while n_triangles <= 0 or not isinstance(n_triangles, int):
         n_triangles = int(input("\nIngrese la cantidad de triángulos: "))
 
-    # Obtener tamaño de la imagen target
+    # Get target image size (scaled down by SCALE_FACTOR)
     with Image.open(target_path) as img:
         w, h = img.size
         canvas_size = (w // SCALE_FACTOR, h // SCALE_FACTOR)
 
-    # Crear carpeta de salida si no existe
+    # Create output folder if it doesn’t exist
     if not os.path.exists(OUTPUT_IMAGES_DIR):
         os.makedirs(OUTPUT_IMAGES_DIR)
     
-    # Crear una carpeta dentro de OUTPUT_IMAGES_DIR para esta corrida con el nombre de la imagen y n_triángulos
+    # Create a specific subfolder for this run (based on image name + n_triangles + color mode + config name)
     image_filename = os.path.splitext(images[choice])[0]
     if RGB:
         color_mode = "RGB"
@@ -73,10 +75,10 @@ def main():
     if not os.path.exists(run_output_path):
         os.makedirs(run_output_path)
 
-    # Guarda copia del archivo de config en la carpeta de outputs
+    # Save a copy of the config file into the run’s output folder
     shutil.copy(config_path, os.path.join(run_output_path, "config.json"))
 
-    # Crear GA con los hiperparámetros del config
+    # Initialize the Genetic Algorithm with hyperparameters from the config
     ga = GeneticAlgorithm(
         target_path=target_path,
         canvas_size=canvas_size,
@@ -92,6 +94,7 @@ def main():
         out_dir=run_output_path
     )
 
+    # Run the Genetic Algorithm
     ga.run()
 
 

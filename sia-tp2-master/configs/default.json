@@ -1,0 +1,37 @@
+{
+  "pop_size": 30, # N
+  "kids_size": 10, # K
+  "parents_selection_method": {
+    "name": "elitism", # elitism, roulette, universal, ranking, boltzmann, determinist_tournament, probabilistic_tournament
+    "Tc": 100, # Tc (boltzmann)
+    "T0": 120, # T0 (boltzmann)
+    "decay": 1, # decay (boltzmann)
+    "M": 5, # Cantidad de individuos M de N (deterministic_tournament)
+    "p": threshold (probabilistic_tournament)
+  },
+  "crossover_criteria": {
+    "method": {
+      "name": "uniform", # one-point, uniform
+      "p": 0.5 # Probabilidad de crossover (uniform)
+    },
+    "crossover_rate": 0.5 # Probabilidad de recombinación
+  },
+  "mutation_method": {
+    "name": "uniform_multigene", # limited_multigene, uniform_multigene, complete
+    "mutation_rate": 0.2, # Tasa de mutación (uniform_multigene)
+    "M": 1 # Cantidad de genes a mutar (limited_multigene)
+  },
+  "new_gen_creation_criteria": "traditional", # traditional, young_bias
+  "new_gen_selection_method": {
+    "name": "elitism", # elitism, roulette, universal, ranking, boltzmann, determinist_tournament, probabilistic_tournament
+    "Tc": 100, # Tc (boltzmann)
+    "T0": 120, # T0 (boltzmann)
+    "decay": 1, # decay (boltzmann)
+    "M": 5, # Cantidad de individuos M de N (deterministic_tournament)
+    "p": threshold (probabilistic_tournament)
+  },
+  "end_criteria": {
+    "name": "generations", # generations, fitness, time
+    "value": 30000 # Cantidad de generaciones (generations), mejor fitness (fitness) ó tiempo (time)
+  }
+}

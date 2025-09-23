@@ -122,12 +122,14 @@ class Perceptron:
 
 X, y = load_csv("TP3-ej2-conjunto.csv")
 
-plt_datapoints_3d(X, y)
+#plt_datapoints_3d(X, y)
 
 X_norm, y_norm, y_min, y_max = normalize_data(X, y)
 
-X_train, X_test, y_train, y_test = train_test_split(X_norm, y_norm)
 
+# -------------------------------------------------------------------------
+# CAPACIDAD DE APRENDIZAJE 
+# -------------------------------------------------------------------------
 
 # Train Perceptron 
 method = 'sigmoid'  # 'step', 'linear', 'sigmoid', 'tanh'
@@ -147,6 +149,59 @@ plt.plot([y.min(), y.max()], [y.min(), y.max()], "r--", label="y = x (perfecto)"
 plt.xlabel("y real")
 plt.ylabel("y predicho")
 plt.title("Comparación y real vs y predicho")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+
+# -------------------------------------------------------------------------
+# CAPACIDAD DE GENERALIZACIÓN 
+# -------------------------------------------------------------------------
+
+X_train, X_test, y_train, y_test = train_test_split(X_norm, y_norm)
+
+
+
+# Train Perceptron SOLO con train
+method = 'sigmoid'  # 'step', 'linear', 'sigmoid', 'tanh'
+perceptron = Perceptron(n_inputs=X_norm.shape[1], learning_rate=0.01)
+perceptron.train(X_train, y_train, epochs=1000, epsilon=0.0, method=method)
+
+# --- Predicciones en TRAIN ---
+y_train_pred = [perceptron.predict(xi, method=method)[0] for xi in X_train]
+y_train_pred = denormalize_y(np.array(y_train_pred), y_min, y_max)
+y_train_real = denormalize_y(y_train, y_min, y_max)
+
+# --- Gráfico comparación en TEST ---
+plt.figure(figsize=(6,6))
+plt.scatter(y_train_real, y_train_pred, c="blue", alpha=0.6, label="Predicciones (train)")
+plt.plot([y.min(), y.max()], [y.min(), y.max()], "r--", label="y = x (perfecto)")
+plt.xlabel("y real")
+plt.ylabel("y predicho")
+plt.title("Generalización del perceptrón (TRAIN)")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# --- Predicciones en TEST ---
+y_test_pred = [perceptron.predict(xi, method=method)[0] for xi in X_test]
+y_test_pred = denormalize_y(np.array(y_test_pred), y_min, y_max)
+y_test_real = denormalize_y(y_test, y_min, y_max)
+
+# --- Métricas ---
+mse_train = np.mean((y_train_real - y_train_pred) ** 2)
+mse_test = np.mean((y_test_real - y_test_pred) ** 2)
+print(f"MSE Train: {mse_train:.4f}")
+print(f"MSE Test: {mse_test:.4f}")
+
+# --- Gráfico comparación en TEST ---
+plt.figure(figsize=(6,6))
+plt.scatter(y_test_real, y_test_pred, c="blue", alpha=0.6, label="Predicciones (test)")
+plt.plot([y.min(), y.max()], [y.min(), y.max()], "r--", label="y = x (perfecto)")
+plt.xlabel("y real")
+plt.ylabel("y predicho")
+plt.title("Generalización del perceptrón (TEST)")
 plt.legend()
 plt.grid(True)
 plt.show()

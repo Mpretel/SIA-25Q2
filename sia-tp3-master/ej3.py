@@ -228,8 +228,6 @@ plt.show()
 
 
 
-
-
 # ------------------------------------------------------------------------------------------
 # DIGITOS
 # ------------------------------------------------------------------------------------------
@@ -261,21 +259,58 @@ X = X.reshape(n_digits, digit_size)                     # (10, 35)
 y = np.array([[1 if d % 2 == 0 else 0] for d in range(n_digits)])
 
 # Crear y entrenar MLP
-mlp = MLP(n_input=35, n_hidden=10, n_output=1, learning_rate=0.1, activation_function='sigmoid', optimizer='adam')
-loss_history = mlp.train(X, y, epochs=1000, epsilon=0.0, batch_size=10)
+mlp = MLP(n_input=35, n_hidden=10, n_output=1, learning_rate=0.1, activation_function='sigmoid', optimizer='gd')
+loss_history = mlp.train(X, y, epochs=700, epsilon=0.0, batch_size=1)
 
 pred = mlp.predict(X)
 print("Esperado:", y.flatten())
 print("Predicho:", pred.flatten())
 
 # Plot loss history
-plt.plot(loss_history)
+plt.figure(figsize=(10, 5))
+plt.plot(loss_history, label="adam")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Curva de error durante el entrenamiento")
 plt.show()
 
+# Comparación de optimizadores
 
+optimizers = ['adam', 'momentum', 'gd']
+histories = {}
+
+for opt in optimizers:
+    print(f"\nEntrenando con optimizador: {opt}")
+    mlp = MLP(
+        n_input=35,
+        n_hidden=10,
+        n_output=1,
+        learning_rate=0.1,
+        activation_function='sigmoid',
+        optimizer=opt
+    )
+
+    loss_history = mlp.train(X, y, epochs=700, epsilon=0.0, batch_size=10)
+    histories[opt] = loss_history
+
+    y_pred = mlp.predict(X)
+    y_pred_label = np.argmax(y_pred, axis=1)
+
+    print("Esperado:", y)
+    print("Predicho:", y_pred_label)
+
+plt.figure(figsize=(8, 5))
+for opt in optimizers:
+    plt.plot(histories[opt], label=opt)
+
+plt.xlabel("Época")
+plt.ylabel("Loss")
+plt.title("Comparación de optimizadores (lr = 0.1)")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+"""
 # ------------------------------
 # Discriminar digitos
 # ------------------------------
@@ -305,15 +340,52 @@ print("Esperado:", y_label)
 print("Predicho:", y_pred_label)
 
 # Plot loss history
-plt.plot(loss_history)
+plt.figure(figsize=(10, 5))
+plt.plot(loss_history, label="momentum", color="orange")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Curva de error durante el entrenamiento")
+plt.legend()
 plt.show()
 
+# Comparación de optimizadores
 
+optimizers = ['adam', 'momentum', 'gd']
+histories = {}
 
+for opt in optimizers:
+    print(f"\nEntrenando con optimizador: {opt}")
+    mlp = MLP(
+        n_input=35,
+        n_hidden=10,
+        n_output=10,
+        learning_rate=0.01,
+        activation_function='sigmoid',
+        optimizer=opt
+    )
 
+    loss_history = mlp.train(X, y, epochs=1000, epsilon=0.0, batch_size=1)
+    histories[opt] = loss_history
+
+    y_pred = mlp.predict(X)
+    y_pred_label = np.argmax(y_pred, axis=1)
+
+    print("Esperado:", y_label)
+    print("Predicho:", y_pred_label)
+
+plt.figure(figsize=(8, 5))
+for opt in optimizers:
+    plt.plot(histories[opt], label=opt)
+
+plt.xlabel("Época")
+plt.ylabel("Loss")
+plt.title("Comparación de optimizadores (lr = 0.01)")
+plt.legend()
+plt.grid(True)
+plt.show()
+"""
+
+"""
 def add_noise(X, noise_level=0.1):
     noisy_X = X.copy()
     flip_mask = np.random.rand(*X.shape) < noise_level
@@ -422,3 +494,4 @@ for nl in noise_levels:
     
     plt.tight_layout()
     plt.show()
+"""

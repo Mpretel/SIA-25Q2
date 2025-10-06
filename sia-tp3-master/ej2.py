@@ -218,7 +218,7 @@ plt.show()
 
 
 
-"""
+
 # -------------------------------------------------------------------------
 # CAPACIDAD DE APRENDIZAJE 
 # -------------------------------------------------------------------------
@@ -226,7 +226,8 @@ plt.show()
 # GRID SEARCH
 # GRID SEARCH con k corridas
 activation_functions = ['linear', 'sigmoid', 'tanh']
-learning_rates = [0.01, 0.05, 0.1, 0.2, 0.5]
+learning_rates_l = [1E-4, 5E-4, 1E-3, 5E-3, 0.01, 0.05]
+learning_rates_nl = [0.01, 0.05, 0.1, 0.2, 0.5]
 betas = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
 
 n_epochs = 1000
@@ -236,7 +237,7 @@ k = 10  # cantidad de corridas
 results = []
 
 for activation_function in activation_functions:
-    for lr in learning_rates:
+    for lr in learning_rates_nl:
         if activation_function in ['sigmoid', 'tanh']:
             for beta in betas:
                 errors = []
@@ -253,7 +254,8 @@ for activation_function in activation_functions:
                 mean_epoch = round(np.mean(conv_epochs), 1)
                 results.append((activation_function, lr, beta, mean_err, mean_epoch))
 
-        else: # linear
+    for lr in learning_rates_l:
+        if activation_function == "linear":
             errors = []
             conv_epochs = []
             for _ in range(k):
@@ -272,11 +274,70 @@ for activation_function in activation_functions:
 results_sorted = sorted(results, key=lambda x: x[3])
 for i, r in enumerate(results_sorted, 1):
     print(f"{i}. {r[0]}, LR: {r[1]}, Beta: {r[2]}, Mean Error: {r[3]}")
-"""
+
+
+# HEATMAPS DE ERROR SEGUN CAPACIDAD DE APRENDIZAJE
+import seaborn as sns
+
+# Pasar resultados a DataFrame
+df = pd.DataFrame(results, columns=["method", "lr", "beta", "mean_err", "mean_epoch"])
+
+# Extraer valores globales de min y max para escalar todos los mapas igual
+vmin = df["mean_err"].min()
+vmax = df["mean_err"].max()
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharey=True)
+
+for ax, method in zip(axes, ["linear"]):
+    if method in ["linear"]:
+        pivot = df[df["method"] == method].copy()
+        pivot["beta"] = 0  
+        pivot = pivot.pivot(index="beta", columns="lr", values="mean_err")
+        a = True
+
+    sns.heatmap(
+        pivot,
+        annot=True, fmt=".1f",
+        cmap="viridis", vmin=vmin, vmax=vmax,
+        ax=ax
+    )
+    ax.set_title(f"{method}")
+    ax.set_xlabel("Learning Rate")
+    ax.set_ylabel("Beta")
+
+plt.tight_layout()
+plt.show()
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharey=True)
+
+for ax, method in zip(axes, ["sigmoid", "tanh"]):
+    if method in ["sigmoid", "tanh"]:
+        # Construir matriz LR vs Beta
+        pivot = df[df["method"] == method].pivot(index="beta", columns="lr", values="mean_err")
+        a = False
+    # else:  # linear no depende de beta → repetimos para que el mapa tenga "forma"
+    #     pivot = df[df["method"] == method].copy()
+    #     pivot["beta"] = 0  
+    #     pivot = pivot.pivot(index="beta", columns="lr", values="mean_err")
+    #     a = True
+
+    sns.heatmap(
+        pivot,
+        annot=True, fmt=".1f",
+        cmap="viridis", vmin=vmin, vmax=vmax,
+        #cbar=a,  # cada heatmap con su barra de color
+        ax=ax
+    )
+    ax.set_title(f"{method}")
+    ax.set_xlabel("Learning Rate")
+    ax.set_ylabel("Beta")
+
+plt.tight_layout()
+plt.show()
 
 
 
-"""
+
 # -------------------------------------------------------------------------
 # CURVAS DE ERROR DEL MEJOR PERCEPTRON DE CADA METODO SEGUN CAPACIDAD DE APRENDIZAJE
 # Linear, LR=0.01
@@ -297,7 +358,7 @@ best_params = {
 }
 
 best_params = {
-    'linear': ('linear', 0.01, None),
+    'linear': ('linear', 0.001, None),
     'sigmoid': ('sigmoid', 0.5, 0.5),
     'tanh': ('tanh', 0.05, 0.5),
 }
@@ -339,7 +400,7 @@ ax2.set_ylabel("Error total")
 ax2.set_title("Evolución del error por método")
 ax2.legend()
 plt.show()
-"""
+
 
 
 
@@ -394,7 +455,7 @@ plt.show()
 """
 
 
-
+"""
 # -------------------------------------------------------------------------
 # CAPACIDAD DE GENERALIZACIÓN: elegimos el mejor perceptron --> hacemos k fold cross-validation
 # Sigmoid, LR=0.5, Beta=0.5
@@ -455,3 +516,5 @@ epsilon = 0.0
 k = 5
 
 mse_train_cv, mse_test_cv = cross_validate_perceptron(X, y, k=k, activation_function=activation_function, lr=lr, beta=beta, epochs=n_epochs, epsilon=epsilon)
+
+"""

@@ -43,8 +43,7 @@ mlp = MLP(
 )
 
 loss_history = mlp.train(X_train, y_train_onehot, epochs=50, batch_size=32)
-y_pred = mlp.predict(X_test)
-y_pred_label = np.argmax(y_pred, axis=1)
+y_pred_label = mlp.predict(X_test, method='multiclass')
 
 # Accuracy
 accuracy = np.mean(y_pred_label == y_test)
@@ -80,11 +79,10 @@ for opt in optimizers:
         optimizer=opt
     )
 
-    loss_history = mlp.train(X_train, y_train_onehot, epochs=100, epsilon=0.0, batch_size=30)
+    loss_history = mlp.train(X_train, y_train_onehot, epochs=100, epsilon=0.0, batch_size=100)
     histories[opt] = loss_history
 
-    y_pred = mlp.predict(X_test)
-    y_pred_label = np.argmax(y_pred, axis=1)
+    y_pred_label = mlp.predict(X_test, method='multiclass')
 
     # Accuracy
     accuracy = np.mean(y_pred_label == y_test)

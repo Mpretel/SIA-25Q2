@@ -294,10 +294,9 @@ for opt in optimizers:
     histories[opt] = loss_history
 
     y_pred = mlp.predict(X)
-    y_pred_label = np.argmax(y_pred, axis=1)
 
     print("Esperado:", y)
-    print("Predicho:", y_pred_label)
+    print("Predicho:", y_pred)
 
 plt.figure(figsize=(8, 5))
 for opt in optimizers:
@@ -369,10 +368,9 @@ for opt in optimizers:
     histories[opt] = loss_history
 
     y_pred = mlp.predict(X)
-    y_pred_label = np.argmax(y_pred, axis=1)
 
     print("Esperado:", y_label)
-    print("Predicho:", y_pred_label)
+    print("Predicho:", y_pred)
 
 plt.figure(figsize=(8, 5))
 for opt in optimizers:

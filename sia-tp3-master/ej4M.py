@@ -2,11 +2,156 @@ import os, gzip, struct, urllib.request
 import numpy as np
 import random
 import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"   # 0=all, 1=INFO off, 2=WARNING off, 3=ERROR only
 # opcional: si querés quitar el aviso de oneDNN
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 from keras.datasets import mnist  # recién ahora importás keras/tf
+
+
+def confusion_matrix(model, X, y, num_classes=10):
+    cm = np.zeros((num_classes, num_classes), dtype=int)
+    for i in range(len(X)):
+        pred = np.argmax(model.predict_proba(X[i]))
+        cm[int(y[i]), pred] += 1
+    return cm
+
+def plot_confusion_matrix(cm, class_names=None, normalize=False, cmap="Blues"):
+    """
+    Grafica una matriz de confusión.
+
+    Parámetros:
+    -----------
+    cm : array-like (2D)
+        Matriz de confusión (por ejemplo salida de sklearn.metrics.confusion_matrix).
+    class_names : list, opcional
+        Lista de nombres de clases. Si None, se numeran como 0..N-1.
+    normalize : bool, default=False
+        Si True, muestra proporciones en lugar de conteos.
+    cmap : str, default="Blues"
+        Paleta de colores para el gráfico.
+    """
+
+    cm = np.array(cm)
+
+    # Normalización
+    if normalize:
+        cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
+
+    # Definir etiquetas si no se pasan
+    if class_names is None:
+        class_names = [str(i) for i in range(cm.shape[0])]
+
+    # Plot
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(cm, annot=True, fmt=".2f" if normalize else "d", cmap=cmap,
+                xticklabels=class_names, yticklabels=class_names)
+
+    plt.xlabel("Predicción")
+    plt.ylabel("Valor real")
+    plt.title("Matriz de confusión" + (" (normalizada)" if normalize else ""))
+    plt.tight_layout()
+    plt.show()
+
+
+import numpy as np
+import pandas as pd
+def save_classification_report_from_cm(cm, class_names=None, filename="classification_report.csv", digits=4):
+    """
+    Genera un 'classification_report' a partir de una matriz de confusión y lo guarda en CSV.
+    El formato emula sklearn: filas por clase + accuracy + macro avg + weighted avg.
+    
+    Parámetros
+    ----------
+    cm : array-like (2D)
+        Matriz de confusión (shape [n_clases, n_clases]).
+    class_names : list[str] | None
+        Nombres de clases en el orden de cm. Si None -> "0..N-1".
+    filename : str
+        Nombre del CSV de salida.
+    digits : int
+        Cantidad de decimales a redondear en la salida.
+    """
+    cm = np.asarray(cm)
+    n = cm.shape[0]
+    if class_names is None:
+        class_names = [str(i) for i in range(n)]
+
+    # TP, FN, FP, TN por clase
+    tp = np.diag(cm).astype(float)
+    fn = cm.sum(axis=1) - tp
+    fp = cm.sum(axis=0) - tp
+    support = tp + fn
+    total = cm.sum()
+
+    # Métricas por clase (con manejo de /0)
+    precision = np.divide(tp, tp + fp, out=np.zeros_like(tp), where=(tp + fp) != 0)
+    recall    = np.divide(tp, tp + fn, out=np.zeros_like(tp), where=(tp + fn) != 0)
+    f1        = np.divide(2 * precision * recall, precision + recall, out=np.zeros_like(tp), where=(precision + recall) != 0)
+
+    # Accuracy global
+    accuracy = float(tp.sum() / total) if total > 0 else 0.0
+
+    # Promedios
+    with np.errstate(invalid='ignore'):
+        # macro: promedio simple entre clases
+        macro_precision = float(np.nanmean(precision))
+        macro_recall    = float(np.nanmean(recall))
+        macro_f1        = float(np.nanmean(f1))
+
+        # weighted: ponderado por soporte
+        weights = np.divide(support, support.sum(), out=np.zeros_like(support), where=support.sum() != 0)
+        weighted_precision = float(np.nansum(precision * weights))
+        weighted_recall    = float(np.nansum(recall * weights))
+        weighted_f1        = float(np.nansum(f1 * weights))
+
+    # Armar filas por clase
+    rows = []
+    for name, p, r, f, s in zip(class_names, precision, recall, f1, support):
+        rows.append({
+            "class": name,
+            "precision": round(p, digits),
+            "recall":    round(r, digits),
+            "f1-score":  round(f, digits),
+            "support":   int(s)
+        })
+
+    # Fila accuracy (como hace sklearn.output_dict: una entrada separada)
+    rows.append({
+        "class": "accuracy",
+        "precision": "",
+        "recall": "",
+        "f1-score": "",
+        "support": int(total),
+        "accuracy": round(accuracy, digits)
+    })
+
+    # Fila macro avg
+    rows.append({
+        "class": "macro avg",
+        "precision": round(macro_precision, digits),
+        "recall":    round(macro_recall, digits),
+        "f1-score":  round(macro_f1, digits),
+        "support":   int(total)
+    })
+
+    # Fila weighted avg
+    rows.append({
+        "class": "weighted avg",
+        "precision": round(weighted_precision, digits),
+        "recall":    round(weighted_recall, digits),
+        "f1-score":  round(weighted_f1, digits),
+        "support":   int(total)
+    })
+
+    # A DataFrame y guardar
+    df = pd.DataFrame(rows, columns=["class", "precision", "recall", "f1-score", "support", "accuracy"])
+    df.to_csv(filename, index=False)
+    print(f"Reporte guardado en '{filename}'")
+
 
 # # =========================
 # # Utilidades: MNIST (IDX)
@@ -443,6 +588,10 @@ def main():
     print(f"\nTest accuracy: {test_acc*100:.2f}%")
     cm = confusion_matrix(mlp, x_test, y_test, num_classes=10)
     print("\nConfusion matrix:\n", cm)
+
+    plot_confusion_matrix(cm, class_names=[str(i) for i in range(10)], normalize=False)
+    save_classification_report_from_cm(cm, class_names=[str(i) for i in range(10)],
+                                   filename="classification_report.csv", digits=3)
 
 if __name__ == "__main__":
     main()

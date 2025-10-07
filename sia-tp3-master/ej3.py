@@ -285,7 +285,7 @@ for opt in optimizers:
         n_input=35,
         n_hidden=10,
         n_output=1,
-        learning_rate=0.1,
+        learning_rate=0.01,
         activation_function='sigmoid',
         optimizer=opt
     )
@@ -305,7 +305,7 @@ for opt in optimizers:
 
 plt.xlabel("Época")
 plt.ylabel("Loss")
-plt.title("Comparación de optimizadores (lr = 0.1)")
+plt.title("Comparación de optimizadores (lr = 0.01)")
 plt.legend()
 plt.grid(True)
 plt.show()

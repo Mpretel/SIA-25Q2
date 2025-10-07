@@ -142,14 +142,17 @@ class MLP:
 
         return loss_history
 
-    def predict(self, X):
+    def predict(self, X, method='binary'):
         """Predicción binaria"""
         output = self.forward(X)
 
-        if self.range == (-1, 1):
-            predictions = np.where(output >= self.threshold, 1, -1)
-        elif self.range == (0, 1):
-            predictions = np.where(output >= self.threshold, 1, 0)
+        if method == 'binary':
+            if self.range == (-1, 1):
+                predictions = np.where(output >= self.threshold, 1, -1)
+            elif self.range == (0, 1):
+                predictions = np.where(output >= self.threshold, 1, 0)
+        elif method == 'multiclass':
+            predictions = np.argmax(output, axis=1)
 
         return predictions
 
@@ -332,9 +335,7 @@ y_label = np.argmax(y, axis=1)
 mlp = MLP(n_input=35, n_hidden=10, n_output=10, learning_rate=0.1, activation_function='sigmoid', optimizer='momentum')
 loss_history = mlp.train(X, y, epochs=1000, epsilon=0.0, batch_size=1)
 
-y_pred = mlp.predict(X)
-y_pred_label = np.argmax(y_pred, axis=1)
-
+y_pred_label = mlp.predict(X, method='multiclass')
 
 print("Esperado:", y_label)
 print("Predicho:", y_pred_label)
@@ -367,10 +368,10 @@ for opt in optimizers:
     loss_history = mlp.train(X, y, epochs=1000, epsilon=0.0, batch_size=1)
     histories[opt] = loss_history
 
-    y_pred = mlp.predict(X)
+    y_pred_label = mlp.predict(X, method='multiclass')
 
     print("Esperado:", y_label)
-    print("Predicho:", y_pred)
+    print("Predicho:", y_pred_label)
 
 plt.figure(figsize=(8, 5))
 for opt in optimizers:
@@ -397,7 +398,7 @@ noise_levels = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
 fig, axes = plt.subplots(len(noise_levels), 10, figsize=(12, 2*len(noise_levels)))
 for i, nl in enumerate(noise_levels):
     X_noisy = add_noise(X, noise_level=nl)
-    y_pred_noisy_label = np.argmax(mlp.predict(X_noisy), axis=1)
+    y_pred_noisy_label = mlp.predict(X_noisy, method='multiclass')
     
     for j in range(10):
         axes[i, j].imshow(
@@ -433,9 +434,8 @@ def confusion_matrix(y_true, y_pred, labels=None):
 
 for nl in noise_levels:
     X_noisy = add_noise(X, noise_level=nl)
-    y_pred_noisy = mlp.predict(X_noisy)
-    y_pred_noisy_label = np.argmax(y_pred_noisy, axis=1)
-    
+    y_pred_noisy_label = mlp.predict(X_noisy, method='multiclass')
+
     acc = accuracy_score(y_label, y_pred_noisy_label)
     print(f"Ruido: {nl*100:.1f}% - Exactitud: {acc*100:.1f}%")
     
@@ -461,8 +461,7 @@ for nl in noise_levels:
 
     for _ in range(n_variants):
         X_noisy = add_noise(X, noise_level=nl)
-        y_pred_noisy = mlp.predict(X_noisy)
-        y_pred_noisy_label = np.argmax(y_pred_noisy, axis=1)
+        y_pred_noisy_label = mlp.predict(X_noisy, method='multiclass')
 
         all_preds.extend(y_pred_noisy_label)
         all_labels.extend(y_label)  # repetimos las etiquetas reales

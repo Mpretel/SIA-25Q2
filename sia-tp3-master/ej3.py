@@ -7,7 +7,6 @@ from perceptrons import MLP
 SEED = 42
 np.random.seed(SEED)
 
-
 def accuracy_score(y_true, y_pred):
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)

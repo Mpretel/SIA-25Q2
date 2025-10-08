@@ -101,18 +101,18 @@ for xi in X:
 **Key Parameters**
 
 Parameter	Description	Effect
-learning_rate:	Step size for updates --> Higher → faster learning but less stable
-beta:	Slope factor (for sigmoid/tanh) --> Higher → sharper transition
-epochs:	Max training iterations	--> Increase if not converging
-epsilon:	Error threshold for stopping --> Stops early if total error < ε
+- learning_rate:	Step size for updates --> Higher → faster learning but less stable
+- beta:	Slope factor (for sigmoid/tanh) --> Higher → sharper transition
+- epochs:	Max training iterations	--> Increase if not converging
+- epsilon:	Error threshold for stopping --> Stops early if total error < ε
 
 **Activation Function Summary**
 
 Function	Output Range	Suitable for	Notes
-step: {-1, 1}	--> Binary, linearly separable tasks --> No gradient, uses sign threshold
-linear: (-∞, ∞)	--> Regression	--> No nonlinearity
-sigmoid: (0, 1)	--> Continuous outputs	--> Smooth, can saturate near 0/1
-tanh: (-1, 1) --> Continuous outputs	--> Symmetric, good for centered data
+- step: {-1, 1}	--> Binary, linearly separable tasks --> No gradient, uses sign threshold
+- linear: (-∞, ∞)	--> Regression	--> No nonlinearity
+- sigmoid: (0, 1)	--> Continuous outputs	--> Smooth, can saturate near 0/1
+- tanh: (-1, 1) --> Continuous outputs	--> Symmetric, good for centered data
 
 
 ### Multi-Layer Perceptron (MLP)
@@ -151,17 +151,17 @@ print("Predictions:", predictions.flatten())
 **Main Parameters**
 
 Parameter	Description	Effect
-n_input, n_hidden, n_output	Network architecture	More hidden neurons → higher capacity
-activation_function	'tanh' or 'sigmoid'	Controls nonlinearity and range
-learning_rate	Step size for updates	Higher → faster but less stable
-optimizer	'gd', 'momentum', 'adam'	Choice of weight update method
-epochs	Max iterations	Higher → longer training
-epsilon	Early stopping threshold	Stops when loss < ε
-batch_size	None (batch), 1 (online), or N (mini-batch)	Controls update granularity
+- n_input, n_hidden, n_output	Network architecture	More hidden neurons → higher capacity
+- activation_function	'tanh' or 'sigmoid'	Controls nonlinearity and range
+- learning_rate	Step size for updates	Higher → faster but less stable
+- optimizer	'gd', 'momentum', 'adam'	Choice of weight update method
+- epochs	Max iterations	Higher → longer training
+- epsilon	Early stopping threshold	Stops when loss < ε
+- batch_size	None (batch), 1 (online), or N (mini-batch)	Controls update granularity
 
 **Optimizers**
 
 Optimizer	Description	When to use
-gd:	Classic gradient descent --> Simple, slower convergence
-momentum:	Adds inertia to updates --> Helps escape local minima
-adam:	Adaptive learning rates
+- gd:	Classic gradient descent --> Simple, slower convergence
+- momentum:	Adds inertia to updates --> Helps escape local minima
+- adam:	Adaptive learning rates

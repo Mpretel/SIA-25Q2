@@ -28,7 +28,7 @@ def confusion_matrix(y_true, y_pred, labels=None):
 colors_optimizers = {'gd': 'tab:green', 'momentum': 'tab:orange', 'adam': 'tab:blue'}
 
 
-"""
+
 # ------------------------------
 # Funcion XOR
 # ------------------------------
@@ -74,7 +74,7 @@ colors = ['blue', 'green', 'red']
 
 plt.figure(figsize=(8,5))
 
-for opt in zip(optimizers):
+for opt in (optimizers):
     # Crear MLP con el optimizador actual
     mlp = MLP(n_input=3, n_hidden=3, n_output=1,
               learning_rate=0.1,
@@ -92,10 +92,10 @@ plt.ylabel("Loss")
 plt.title("Comparación de evolución del error (GD vs Momentum vs Adam)")
 plt.legend()
 plt.show()
+
+
+
 """
-
-
-
 # ------------------------------------------------------------------------------------------
 # DIGITOS
 # ------------------------------------------------------------------------------------------
@@ -117,7 +117,7 @@ n_digits = n_rows // digit_height
 # Vectorizo cada dígito (7x5 -> 35)
 X = data.reshape(n_digits, digit_height, digit_width)   # (10, 7, 5)
 X = X.reshape(n_digits, digit_size)                     # (10, 35)
-
+"""
 
 """
 # ------------------------------
@@ -248,7 +248,7 @@ for batch_size in batch_sizes:
         plt.show()
 
 """
-
+"""
 # ------------------------------
 # Discriminar digitos
 # ------------------------------
@@ -264,6 +264,7 @@ y = np.array([[1,0,0,0,0,0,0,0,0,0],
               [0,0,0,0,0,0,0,0,1,0],
               [0,0,0,0,0,0,0,0,0,1]])
 y_label = np.argmax(y, axis=1)
+"""
 
 """
 # Comparación de optimizadores
@@ -337,7 +338,7 @@ for lr in learning_rates:
         plt.show()
 """
 
-
+"""
 # ------------------------------
 # Agregamos Ruido
 # ------------------------------
@@ -452,3 +453,4 @@ for nl in noise_levels:
     
     plt.tight_layout()
     plt.show()
+"""

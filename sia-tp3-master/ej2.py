@@ -299,7 +299,7 @@ plt.show()
 
 
 
-"""
+
 # -------------------------------------------------------------------------
 # CAPACIDAD DE GENERALIZACIÓN: elegimos el mejor perceptron --> hacemos un simple train test split
 # Sigmoid, LR=0.5, Beta=0.5
@@ -313,6 +313,10 @@ n_epochs = 1000
 epsilon = 0.0
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+
+
+
+"""
 
 perceptron = Perceptron(n_inputs=X.shape[1], X_min=X_min, X_max=X_max, y_min=y_min, y_max=y_max, learning_rate=lr, activation_function=activation_function, beta=beta)
 error_history, conv_epoch = perceptron.train(X_train, y_train, epochs=n_epochs, epsilon=epsilon)

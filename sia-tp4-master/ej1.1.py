@@ -6,9 +6,9 @@ from sklearn.preprocessing import StandardScaler
 from collections import Counter
 from sklearn.decomposition import PCA
 
-
 # fijar semilla para reproducibilidad
-np.random.seed(10)
+SEED = 42
+np.random.seed(SEED)
 
 
 # 1. Cargar y preparar datos
@@ -23,21 +23,22 @@ X_scaled = scaler.fit_transform(X)
 
 
 # 2. Definir parámetros de la red Kohonen
-k = 2
+k = 4 # tamaño del mapa k x k
 n = X_scaled.shape[1]
+n_iterations = 500*n # número de iteraciones
+initial_lr = 0.5 # < 1 tasa de aprendizaje inicial
+initial_r = k # radio inicial de vecindad
 
-n_iterations = 500*n
-initial_lr = 0.5 # < 1
-initial_r = k / 2 
-
-# Inicializar pesos aleatoriamente
-#weights = np.random.rand(k, k, n) # aleatoriamente
+# Inicializar pesos
+# aleatoriamente
+#weights = np.random.rand(k, k, n)
 # con muestras de entrada para evitar neuronas muertas
 weights = np.zeros((k, k, n))
 samples = X_scaled[np.random.choice(X_scaled.shape[0], k * k, replace=False)]
 for idx, sample in enumerate(samples):
     i, j = divmod(idx, k)
     weights[i, j, :] = sample
+    
 
 # 3. Funciones auxiliares
 def find_bmu(x, weights):
@@ -56,8 +57,7 @@ def neighborhood_function(bmu_idx, r, k):
 for t in range(n_iterations):
     # Decaimiento de tasa de aprendizaje y radio de vecindad
     lr = initial_lr * np.exp(-t / n_iterations)
-    r = initial_r * np.exp(-t / (n_iterations / np.log(initial_r)))
-
+    r = 1 + (initial_r - 1) * np.exp(-t / (n_iterations / np.log(initial_r))) # decaimiento exponencial
     # Elegir una muestra aleatoria
     x = X_scaled[np.random.randint(0, X_scaled.shape[0])]
 
@@ -73,9 +73,9 @@ for t in range(n_iterations):
             weights[i, j, :] += lr * h[j, i] * (x - weights[i, j, :])
 
 
-
 # 5. Asignar cada país a su neurona ganadora
 bmu_positions = np.array([find_bmu(x, weights) for x in X_scaled])
+
 
 # Convertir a índices lineales (por conveniencia)
 bmu_linear = np.ravel_multi_index(bmu_positions.T, (k, k))
@@ -97,8 +97,31 @@ plt.ylabel("PC2")
 plt.colorbar(scatter, label="Neurona (Cluster)")
 plt.show()
 
+plt.figure(figsize=(8,6))
+scatter = plt.scatter(X_pca[:,0], X_pca[:,1], c=bmu_linear, cmap="tab20", s=100, edgecolor='k')
+for i, name in enumerate(countries):
+    plt.text(X_pca[i,0]+0.02, X_pca[i,1], name, fontsize=8)
+# === Agregar direcciones de las variables (loadings) ===
+loadings = pca.components_.T   # matriz (n_variables x 2)
+variables = X.columns
+# Escalar flechas para que se vean bien en el mismo espacio
+scaling_factor = 3  # podés ajustar este valor según tu gráfico
+for i, var in enumerate(variables):
+    plt.arrow(0, 0, 
+              loadings[i,0]*scaling_factor, 
+              loadings[i,1]*scaling_factor, 
+              color='red', alpha=0.7, head_width=0.05)
+    plt.text(loadings[i,0]*scaling_factor*1.1, 
+             loadings[i,1]*scaling_factor*1.1, 
+             var, color='red', fontsize=11)
+plt.title("Agrupamiento de países según el SOM (en espacio PCA)")
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.colorbar(scatter, label="Neurona (Cluster)")
+plt.show()
 
-# 6. Graficar el mapa U-Matrix (distancias entre neuronas vecinas)
+
+# Grafico del mapa de distancias entre neuronas vecinas
 u_matrix = np.zeros((k, k))
 for i in range(k):
     for j in range(k):
@@ -125,13 +148,13 @@ for country, (x, y) in zip(countries, bmu_positions):
 for (x, y), names in neuron_to_countries.items():
     n = len(names)
     # Si hay varias etiquetas, las distribuimos en vertical dentro de la celda
-    offsets = np.linspace(-0.3, 0.3, n)
+    offsets = np.linspace(-0.45, 0.45, n)
     for offset, name in zip(offsets, names):
         plt.text(x, y + offset, name,fontsize=7, ha="center", va="center", color="black")
 plt.show()
 
 
-# 7. Gráfico de ocupación (cantidad de países por neurona)
+# Gráfico de distancias entre neuronas con la cantidad de países asociados
 counts = Counter(map(tuple, bmu_positions))
 
 plt.figure(figsize=(8, 6))
@@ -144,7 +167,7 @@ plt.colorbar(label="Distancia promedio")
 plt.show()
 
 
-# 7b. Gráfico de ocupación (cant de paises por neurona) con colores en funcion de la cantidad
+# Gráfico de cant de paises por neurona con colores en funcion de la cantidad
 u_matrix = np.zeros((k, k))
 for i in range(k):
     for j in range(k):
@@ -193,7 +216,7 @@ for idx, var in enumerate(variables):
     # Agregar etiquetas de países en cada neurona
     for (x, y), names in neuron_to_countries.items():
         n = len(names)
-        offsets = np.linspace(-0.3, 0.3, n)  # desplazar si hay varios países
+        offsets = np.linspace(-0.45, 0.45, n)  # desplazar si hay varios países
         for offset, name in zip(offsets, names):
             ax.text(x, y + offset, name, fontsize=6, ha="center", va="center", color="black")
 

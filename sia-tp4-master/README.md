@@ -4,6 +4,8 @@ This repository contains the implementation for the fourth practical assignment 
 
 It includes implementations of **Kohonen Self-Organizing Maps (SOM)**, **Oja’s rule networks**, and **Hopfield associative memory**, applied to the dataset `europe.csv`.
 
+Link to presentation: [SIA TP4 Presentation](https://docs.google.com/presentation/d/1g9YFS_u_gvaAIalk_4Mgr0jAP2zabHK-A_L9CD_7OYA/edit?usp=sharing)
+
 > **Note:** This assignment is based on the `Perceptron` class implemented in **TP3**.  
 > Some experiments reuse and extend the methods developed there.
 

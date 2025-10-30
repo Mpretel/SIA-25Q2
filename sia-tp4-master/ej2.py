@@ -363,7 +363,7 @@ plt.show()
 
 ############## Análisis almacenamiento ##############
 
-
+### Construcción de patrones ortogonales 10x10
 def _legendre_symbol(a, p):
     a %= p
     if a == 0:
@@ -395,6 +395,7 @@ def build_orthogonal_10x10_patterns(num=5, reshape=(10, 10)):
     vecs = [np.kron(r, w) for r in rows]  # cada uno queda de longitud 100 (±1)
     mats = [v.reshape(reshape) for v in vecs]
     return mats
+###
 
 # # === Ejemplo de uso ===
 patterns_10x10 = build_orthogonal_10x10_patterns(num=5)
@@ -416,6 +417,7 @@ patterns_10x10 = build_orthogonal_10x10_patterns(num=5)
 # plt.tight_layout()
 # plt.show()
 
+### Construcción de patrones ortogonales 4x4
 def hadamard4():
     """Hadamard(4) via Sylvester."""
     H2 = np.array([[1, 1],
@@ -441,6 +443,7 @@ def build_orthogonal_4x4_patterns(num=5):
         P = np.outer(u, v)          # (4,4), valores ±1
         patterns.append(P.astype(int))
     return patterns
+###
 
 # === Ejemplo de uso ===
 patterns_4x4 = build_orthogonal_4x4_patterns(num=16)

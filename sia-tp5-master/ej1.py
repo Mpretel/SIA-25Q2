@@ -1,7 +1,7 @@
 import numpy as np
 import re
 import os
-from autoencoder import Autoencoder
+from autoencoder import Autoencoder, MLP
 
 def font_to_binary_matrix(path="font.h"):
     import re
@@ -61,25 +61,33 @@ print(X.shape)  # por ejemplo (32, 35)
 
 import matplotlib.pyplot as plt
 
-plt.imshow(X[1].reshape(7, 5), cmap="gray_r")
-plt.axis("off")
+# plt.imshow(X[1].reshape(7, 5), cmap="gray_r")
+# plt.axis("off")
+# plt.show()
+
+# X = font_to_binary_matrix(font_path)
+# print(X.shape)
+# plt.imshow(X[1].reshape(7, 5), cmap="gray_r")
+# plt.show()
+
+autoenc = MLP(n_input=35, n_hidden=2, n_output=35, learning_rate=0.001, optimizer='adam')
+
+loss = autoenc.train(X, X, epochs=1000, batch_size=8)
+
+# Plot loss history
+plt.figure(figsize=(10, 5))
+plt.plot(loss, label="adam")
+plt.legend()
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title("Curva de error durante el entrenamiento")
 plt.show()
 
-X = font_to_binary_matrix(font_path)
-print(X.shape)
-plt.imshow(X[1].reshape(7, 5), cmap="gray_r")
-plt.show()
+# Z = autoenc.encode(X)
 
-autoenc = Autoencoder(n_input=35, n_hidden=16, n_latent=2,
-                      activation='tanh', learning_rate=0.05, optimizer='adam')
-
-loss = autoenc.train(X, epochs=1000, batch_size=8)
-
-Z = autoenc.encode(X)
-
-import matplotlib.pyplot as plt
-plt.scatter(Z[:,0], Z[:,1])
-for i, (x, y) in enumerate(Z):
-    plt.text(x, y, str(i), fontsize=8)
-plt.title("Espacio latente 2D del autoencoder")
-plt.show()
+# import matplotlib.pyplot as plt
+# plt.scatter(Z[:,0], Z[:,1])
+# for i, (x, y) in enumerate(Z):
+#     plt.text(x, y, str(i), fontsize=8)
+# plt.title("Espacio latente 2D del autoencoder")
+# plt.show()

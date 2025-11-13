@@ -24,9 +24,16 @@ def sigmoid_derivative(x):
     sx = sigmoid(x)
     return sx * (1 - sx)
 
+def softsign(x):
+    return x / (1 + np.abs(x))
+
+def softsign_derivative(x):
+    return 1 / (1 + np.abs(x))**2
+
 activation_functions = {
     'tanh': (tanh, tanh_derivative, (-1, 1), 0.0),
-    'sigmoid': (sigmoid, sigmoid_derivative, (0, 1), 0.5)
+    'sigmoid': (sigmoid, sigmoid_derivative, (0, 1), 0.5),
+    'softsign': (softsign, softsign_derivative, (-1, 1), 0.0)
 }
 
 class MLP:
@@ -107,12 +114,11 @@ decoder = MLP(n_input=LATENT_DIM + 1, n_hidden=HIDDEN, n_output=35,
               activation_function=ACT_FUNC, learning_rate=LR, optimizer=OPTIMIZER)
 
 
-"""
-if ACT_FUNC == 'tanh':
+
+if ACT_FUNC == 'tanh' or ACT_FUNC == 'softsign':
     data = data * 2.0 - 1.0  # Escalar datos de [0, 1] a [-1, 1]
-"""
-#thd = activation_functions[ACT_FUNC][3] # umbral de activación
-thd = 0.5
+
+thd = activation_functions[ACT_FUNC][3] # umbral de activación
 
 
 #  Entrenamiento con bias implícito
@@ -198,9 +204,9 @@ probs = decoder.predict(z_bias)
 
 # Reconstrucciones y errores
 recons = (probs >= thd).astype(int)
-"""if ACT_FUNC == 'tanh':
+if ACT_FUNC == 'tanh' or ACT_FUNC == 'softsign':
     recons = recons * 2.0 - 1.0  # Escalar datos de [0, 1] a [-1, 1]
-"""
+
 errors = np.sum(recons != data, axis=1)
 
 print("Errores por muestra:", errors)
@@ -251,10 +257,10 @@ grid = np.array([[zmin[0] + (zmax[0]-zmin[0])*j/(nx-1),
 grid_bias = np.hstack([grid, np.ones((grid.shape[0], 1))])
 gen_probs = decoder.predict(grid_bias)
 gen = (gen_probs >= thd).astype(int)
-""
-if ACT_FUNC == 'tanh':
+
+if ACT_FUNC == 'tanh' or ACT_FUNC == 'softsign':
     gen = gen * 2.0 - 1.0  # Escalar datos de [0, 1] a [-1, 1]
-""
+
 plt.figure(figsize=(6, 6))
 for i in range(nx*ny):
     ax = plt.subplot(ny, nx, i + 1)

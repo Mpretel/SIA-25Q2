@@ -296,7 +296,7 @@ plt.show()
 ################################################################
 #Distintos niveles de ruido
 
-noise_levels = [0.1, 0.2, 0.3, 0.4, 0.5]
+noise_levels = np.arange(0.05, 1, 0.05)
 
 all_errors = {} 
 all_recons = {} 
@@ -338,6 +338,7 @@ for NOISE_P in noise_levels:
 
     print(f"Error medio: {errors.mean():.2f}, máx: {errors.max()}, total: {errors.sum()}")
 
+"""
 for NOISE_P in noise_levels:
 
     data_noisy, recons = all_recons[NOISE_P]
@@ -355,6 +356,17 @@ for NOISE_P in noise_levels:
 
     plt.tight_layout()
     plt.show()
+"""
+
+# Errores vs noise levels
+plt.figure(figsize=(12,6), dpi=120)
+plt.scatter(noise_levels,
+            [all_errors[nl]["total"] for nl in noise_levels], color = "#5557a3ff")
+plt.xlabel("Nivel de ruido")
+plt.ylabel("Errores totales")
+plt.title("Errores totales vs niveles de ruido")
+plt.grid()
+plt.show()
 
 ################################################################
 

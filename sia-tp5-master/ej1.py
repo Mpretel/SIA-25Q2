@@ -128,68 +128,68 @@ if ACT_FUNC == 'tanh' or ACT_FUNC == 'softsign':
 
 thd = activation_functions[ACT_FUNC][3] # umbral de activación
 
-# Denoising
+# ====================================================
+# Denoising (antes del entrenamiento)
+# en caso de usar cambiar data por data_noisy en el entrenamiento
 
-if USE_DENOISING:
-    noisy_list = []
-    clean_list = []
+# if USE_DENOISING:
+#     noisy_list = []
+#     clean_list = []
 
-    for x in data:
-        for _ in range(N_SAMPLES):
-            mask = np.random.rand(*x.shape) > NOISE_P
+#     for x in data:
+#         for _ in range(N_SAMPLES):
+#             mask = np.random.rand(*x.shape) > NOISE_P
 
-            if ACT_FUNC in ["tanh", "softsign"]:
-                x_noisy = x * mask + (-1.0) * (~mask)
-            else:
-                x_noisy = x * mask
+#             if ACT_FUNC in ["tanh", "softsign"]:
+#                 x_noisy = x * mask + (-1.0) * (~mask)
+#             else:
+#                 x_noisy = x * mask
             
-            noisy_list.append(x_noisy)
-            clean_list.append(x)       # Target limpio
+#             noisy_list.append(x_noisy)
+#             clean_list.append(x)       # Target limpio
 
-    data_noisy = np.array(noisy_list)
-    data_clean = np.array(clean_list)
-else:
-    data_noisy = data
-    data_clean = data
+#     data_noisy = np.array(noisy_list)
+#     data_clean = np.array(clean_list)
+# else:
+#     data_noisy = data
+#     data_clean = data
 
-# Muestro un caracter ruidoso de cada uno
-rows, cols = 4, 8
-N = rows * cols   # 32 muestras
+# # Muestro un caracter ruidoso de cada uno
+# rows, cols = 4, 8
+# N = rows * cols   # 32 muestras
 
-plt.figure(figsize=(cols*1.5, rows*1.5))
-plt.suptitle(f"Caracteres ruidosos generados (ruido = {NOISE_P})", fontsize=14)
+# plt.figure(figsize=(cols*1.5, rows*1.5))
+# plt.suptitle(f"Caracteres ruidosos generados (ruido = {NOISE_P})", fontsize=14)
 
-for i in range(N):
-    ax = plt.subplot(rows, cols, i + 1)
-    show_pattern(data_noisy[i+(N_SAMPLES-1)*i], ax, title=f"{labels[i]}")
+# for i in range(N):
+#     ax = plt.subplot(rows, cols, i + 1)
+#     show_pattern(data_noisy[i+(N_SAMPLES-1)*i], ax, title=f"{labels[i]}")
     
-plt.tight_layout()
-plt.show()
-
+# plt.tight_layout()
+# plt.show()
+#============================================================
 
 #  Entrenamiento con bias implícito
 best_loss = np.inf
 no_improve = 0
 
 for epoch in range(1, EPOCHS + 1):
-    idx = np.random.permutation(len(data_noisy))
+    idx = np.random.permutation(len(data))
     batches = [idx[i:i + BATCH_SIZE] for i in range(0, len(idx), BATCH_SIZE)]
     epoch_loss = 0.0
 
     for batch in batches:
-        x_noisy = data_noisy[batch]
-        x_clean = data_clean[batch]
-
+        x = data[batch]
         
-        # --- Denoising opcional ---
-        # if USE_DENOISING:
-        #     mask = np.random.rand(*x.shape) > NOISE_P
-        #     if ACT_FUNC == 'tanh' or ACT_FUNC == 'softsign':
-        #         x_noisy = x * mask + (-1.0) * (~mask)
-        #     else:
-        #         x_noisy = x * mask
-        # else:
-        #     x_noisy = x
+        # Denoising (durante el entrenamiento)
+        if USE_DENOISING:
+            mask = np.random.rand(*x.shape) > NOISE_P
+            if ACT_FUNC == 'tanh' or ACT_FUNC == 'softsign':
+                x_noisy = x * mask + (-1.0) * (~mask)
+            else:
+                x_noisy = x * mask
+        else:
+            x_noisy = x
         
 
         # --- Agregar columna de 1s (bias implícito) ---
@@ -204,12 +204,12 @@ for epoch in range(1, EPOCHS + 1):
         recon = decoder.forward(z_bias)
 
         # === Backward ===
-        decoder_grad_z = decoder.backward(z_bias, y=x_clean, output=recon)
+        decoder_grad_z = decoder.backward(z_bias, y=x, output=recon)
         decoder_grad_z = decoder_grad_z[:, :-1]   # quitar gradiente del bias antes del encoder
         encoder.backward(x_noisy_bias, grad_output=decoder_grad_z)
 
         # === Pérdida ===
-        loss = np.mean((x_clean - recon)**2)
+        loss = np.mean((x - recon)**2)
         epoch_loss += loss * len(batch)
 
     # --- Promedio por época ---
@@ -274,14 +274,6 @@ plt.grid(True)
 plt.show()
 
 
-#  Reconstrucciones de patrones
-def show_pattern(vec35, ax, title=None):
-    mat = vec35.reshape(7, 5)
-    ax.imshow(mat, cmap='gray_r', vmin=0, vmax=1)
-    ax.set_xticks([]); ax.set_yticks([])
-    if title:
-        ax.set_title(title, fontsize=9)
-
 n = len(data)
 plt.figure(figsize=(12, 6))
 for i in range(n):
@@ -295,8 +287,9 @@ plt.show()
 
 ################################################################
 #Distintos niveles de ruido
+#Ver qué pasa que en 0.3 no da 0
 
-noise_levels = np.arange(0.05, 1, 0.05)
+noise_levels = np.arange(0, 1, 0.1)
 
 all_errors = {} 
 all_recons = {} 
@@ -338,7 +331,6 @@ for NOISE_P in noise_levels:
 
     print(f"Error medio: {errors.mean():.2f}, máx: {errors.max()}, total: {errors.sum()}")
 
-"""
 for NOISE_P in noise_levels:
 
     data_noisy, recons = all_recons[NOISE_P]
@@ -356,7 +348,6 @@ for NOISE_P in noise_levels:
 
     plt.tight_layout()
     plt.show()
-"""
 
 # Errores vs noise levels
 plt.figure(figsize=(12,6), dpi=120)

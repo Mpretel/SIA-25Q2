@@ -47,12 +47,11 @@ def mostrar_emoji(dataset, indice):
 
 X = crear_dataset_emojis("sia-tp5-master\emojis-x1-32x32", n_emojis=5, resolucion=(32, 32))
 
-mostrar_emoji(X, 0)
-mostrar_emoji(X, 1)
-mostrar_emoji(X, 2)
-mostrar_emoji(X, 3)
-mostrar_emoji(X, 4)
-# # mostrar_emoji(X, 5)
+# mostrar_emoji(X, 0)
+# mostrar_emoji(X, 1)
+# mostrar_emoji(X, 2)
+# mostrar_emoji(X, 3)
+# mostrar_emoji(X, 4)
 
 emoji_labels = np.array([f"E{i}" for i in range(len(X))])
 

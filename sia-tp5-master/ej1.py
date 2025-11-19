@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-from constants import *
+from constants1 import *
 from data import data, labels
 
 

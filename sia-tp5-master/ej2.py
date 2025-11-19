@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-from constants import *
+from constants2 import *
 
 
 SEED = 42
@@ -29,7 +29,6 @@ def softsign(x):
 def softsign_derivative(x):
     return 1 / (1 + np.abs(x))**2
 
-# --- Añadir activación linear ---
 def linear(x):
     return x
 
@@ -75,11 +74,11 @@ class MLP:
         batch_size = X.shape[0]
 
         if grad_output is None:
-            # === Caso decoder con BCE ===
+            # Caso decoder con BCE
             # grad_output = dL/da = (sigmoid(a) - y)
-            d_output = (output - y)               # <-- BCE + sigmoid deriv correcta
+            d_output = (output - y)
         else:
-            # === Caso encoder: grad externo ===
+            # Caso encoder
             d_output = grad_output * self.activation_deriv(self.final_input)
 
         d_hidden = d_output.dot(self.W_output.T) * self.activation_deriv(self.hidden_input)
@@ -88,12 +87,27 @@ class MLP:
         grad_W_output = self.hidden_output.T.dot(d_output) / batch_size
         grad_W_hidden = X.T.dot(d_hidden) / batch_size
 
-        # === Update ===
+        # Update
         if self.optimizer == 'gd':
             self.W_output -= self.learning_rate * grad_W_output
             self.W_hidden -= self.learning_rate * grad_W_hidden
-        else:
-            raise NotImplementedError("Solo GD en esta versión simplificada")
+        elif self.optimizer == 'momentum':
+            self.vW_output = self.beta * self.vW_output + (1 - self.beta) * grad_W_output
+            self.vW_hidden = self.beta * self.vW_hidden + (1 - self.beta) * grad_W_hidden
+            self.W_output -= self.learning_rate * self.vW_output
+            self.W_hidden -= self.learning_rate * self.vW_hidden
+        elif self.optimizer == 'adam':
+            self.iteration += 1
+            self.mW_output = self.beta1 * self.mW_output + (1 - self.beta1) * grad_W_output
+            self.vW_output_adam = self.beta2 * self.vW_output_adam + (1 - self.beta2) * (grad_W_output**2)
+            self.mW_hidden = self.beta1 * self.mW_hidden + (1 - self.beta1) * grad_W_hidden
+            self.vW_hidden_adam = self.beta2 * self.vW_hidden_adam + (1 - self.beta2) * (grad_W_hidden**2)
+            m_hat_out = self.mW_output / (1 - self.beta1**self.iteration)
+            v_hat_out = self.vW_output_adam / (1 - self.beta2**self.iteration)
+            m_hat_hid = self.mW_hidden / (1 - self.beta1**self.iteration)
+            v_hat_hid = self.vW_hidden_adam / (1 - self.beta2**self.iteration)
+            self.W_output -= self.learning_rate * m_hat_out / (np.sqrt(v_hat_out) + self.epsilon_adam)
+            self.W_hidden -= self.learning_rate * m_hat_hid / (np.sqrt(v_hat_hid) + self.epsilon_adam)
 
         # grad wrt input
         d_input = d_hidden.dot(self.W_hidden.T)
@@ -103,17 +117,21 @@ class MLP:
     def predict(self, X):
         return self.forward(X)
     
-# --- Arquitectura VAE ---
+#rquitectura VAE
 # encoder outputs 2 * LATENT_DIM (mu and logvar concatenated)
 encoder = MLP(n_input=32*32 + 1, n_hidden=HIDDEN, n_output=LATENT_DIM * 2,
               activation_function='sigmoid', learning_rate=LR, optimizer=OPTIMIZER)
+
 # decoder takes latent dim + bias and outputs original dim (reconstruction)
 decoder = MLP(n_input=LATENT_DIM + 1, n_hidden=HIDDEN, n_output=32*32,
               activation_function="sigmoid", learning_rate=LR, optimizer=OPTIMIZER)
 
+# ============================
+# Carga de emojis
 from load_emojis import X, emoji_labels
 
-data = (X + 1) / 2 # Escalados para usar sigmoid
+data = (X + 1) / 2 # Escalado para usar sigmoid
+# ============================
 
 # Entrenamiento VAE
 best_loss = np.inf
@@ -127,40 +145,30 @@ for epoch in range(1, EPOCHS + 1):
     for batch in batches:
         x = data[batch]  # (B, D)
 
-        # bias en entrada del encoder
+        # Bias implícito en la entrada del encoder
         x_bias = np.hstack([x, np.ones((x.shape[0], 1))])  # (B, D+1)
 
-        # === Encoder forward: obtiene mu y logvar concatenados ===
+        # Encoder forward: obtiene mu y logvar concatenados
         enc_out = encoder.forward(x_bias)  # (B, 2*LATENT_DIM)
         mu = enc_out[:, :LATENT_DIM]
         logvar = enc_out[:, LATENT_DIM:]
 
-        # reparameterization
+        # Reparameterization trick
         eps = np.random.normal(size=mu.shape)
         sigma = np.exp(0.5 * logvar)
         z = mu + sigma * eps  # (B, LATENT_DIM)
 
-        # añadir bias al z antes del decoder
+        # Añadir bias al z antes del decoder
         z_bias = np.hstack([z, np.ones((z.shape[0], 1))])  # (B, LATENT_DIM+1)
 
-        # === Decoder forward ===
+        # Decoder forward
         recon = decoder.forward(z_bias)  # (B, D)
 
-        # === Pérdidas por muestra ===
-        # Reconstrucción (MSE)
-        eps_num = 1e-9
-
         # Binary Cross Entropy por muestra
-        bce_per_sample = np.mean(
-            -x * np.log(recon + eps_num) - (1 - x) * np.log(1 - recon + eps_num),
-            axis=1
-        )
+        bce_per_sample = np.mean(-x * np.log(recon) - (1 - x) * np.log(1 - recon), axis=1)
 
         # KL por muestra
-        kl_per_sample = 0.5 * np.sum(
-            mu**2 + np.exp(logvar) - logvar - 1,
-            axis=1
-        )
+        kl_per_sample = 0.5 * np.sum(mu**2 + np.exp(logvar) - logvar - 1, axis=1)
 
         batch_bce = np.mean(bce_per_sample)
         batch_kl  = np.mean(kl_per_sample)
@@ -196,7 +204,7 @@ for epoch in range(1, EPOCHS + 1):
     if epoch % PRINT_EVERY == 0 or epoch == 1:
         print(f"Epoch {epoch:4d} | Loss={epoch_loss:.6f} | KL={batch_kl:.6f}")
 
-    # Early stopping (igual que antes)
+    # Early stopping
     if epoch_loss < best_loss - 1e-6:
         best_loss = epoch_loss
         best_encoder = encoder
@@ -208,7 +216,7 @@ for epoch in range(1, EPOCHS + 1):
         print("Early stopping.")
         break
 
-# usar mejores pesos
+# Usar mejores pesos
 encoder, decoder = best_encoder, best_decoder
 
 # Obtener mu del encoder
@@ -216,7 +224,7 @@ data_bias = np.hstack([data, np.ones((data.shape[0], 1))])
 enc_out = encoder.predict(data_bias)
 mu = enc_out[:, :LATENT_DIM]
 
-#Plot espacio latente
+# Plot espacio latente (con mu)
 plt.figure(figsize=(6,6))
 plt.scatter(mu[:,0], mu[:,1])
 for i in range(len(emoji_labels)):

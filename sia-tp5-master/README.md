@@ -13,7 +13,7 @@ Link to presentation: [SIA TP5 Presentation](https://docs.google.com/presentatio
 
 ## Contents
 
-- `ej1.py`: Implementation of an **Autoencoder**, in order to represent the binary characters of the `font.h` file into a 2D latent space, and a **Denoising Autoencoder** over the same dataset.  
+- `ej1.py` and `ej1-gridsearch.py`: Implementation of an **Autoencoder**, in order to represent the binary characters of the `font.h` file into a 2D latent space, and a **Denoising Autoencoder** over the same dataset.  
 - `ej2-1d.py` and `ej2-2d.py`: Extension of the **Autoencoder** to a **VAE**, in order to solve the representation into a 1D or 2D latent space of an emoji dataset (`emojis-x1-32x32`).
 
 - `constants1.py`: Hyperparameters for the **Autoencoder** on `ej1.py`.
@@ -24,6 +24,8 @@ Link to presentation: [SIA TP5 Presentation](https://docs.google.com/presentatio
 
 - `emojis-x1-32x32`: Folder with emoji PNG files (50 32x32 RGB emojis).
 - `load_emojis.py`: Preprocessing of the files in `emojis-x1-32x32`.
+  
+- `MLP.py`: Former `MLP` class implemented in **TP3**.
 
 Each exercise includes visualization scripts for inspecting the learned representations.
 
@@ -45,7 +47,7 @@ Run them directly from the command line or an IDE (e.g., VS Code, PyCharm, Jupyt
 
 ### 🧩 Exercise 1 — Autoencoder (& Denoising Autoencoder)
 
-The file **`ej1.py`** trains a **fully-connected autoencoder** to reconstruct 7×5 character patterns (35 pixels), with optional training as a **denoising autoencoder**.
+The file **`ej1.py`** trains a **fully-connected autoencoder** to reconstruct 7×5 character patterns (35 pixels), with optional training as a **denoising autoencoder**. The file **`ej1-gridsearch.py`** performs a gridsearch in order to find the optimal hyperparameters that minimize the reconstruction error over the dataset.
 
 #### Main steps:
 1. **Load the 7×5 character dataset** (`data`, `labels`).

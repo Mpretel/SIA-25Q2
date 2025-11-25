@@ -14,7 +14,7 @@ Link to presentation: [SIA TP5 Presentation](https://docs.google.com/presentatio
 ## Contents
 
 - `ej1.py`: Implementation of an **Autoencoder**, in order to represent the binary characters of the `font.h` file into a 2D latent space, and a **Denoising Autoencoder** over the same dataset.  
-- `ej2.py`: Extension of the **Autoencoder** to a **VAE**, in order to solve the representation into a latent space of an emoji dataset (`emojis-x1-32x32`).
+- `ej2-1d.py` and `ej2-2d.py`: Extension of the **Autoencoder** to a **VAE**, in order to solve the representation into a 1D or 2D latent space of an emoji dataset (`emojis-x1-32x32`).
 
 - `constants1.py`: Hyperparameters for the **Autoencoder** on `ej1.py`.
 - `constants2.py`: Hyperparameters for the **VAE** on `ej2.py`.
@@ -71,9 +71,9 @@ The model learns compact latent codes and can reconstruct characters even from n
 
 ---
 
-### 😘​ Exercise 2 — Variational Autoencoder (VAE)
+### 🌀​ Exercise 2 — Variational Autoencoder (VAE)
 
-The file **`ej2.py`** implements a **Variational Autoencoder**, a generative neural model that learns a continuous latent distribution over the character patterns.
+Files **`ej2-1d.py`** and **`ej2-2d.py`** implement a **Variational Autoencoder**, a generative neural model that learns a continuous latent distribution over the character patterns.
 
 #### Main steps:
 1. **Probabilistic encoder**:
@@ -147,5 +147,9 @@ They control model architecture, optimization settings, training length, and opt
 
 - **`NOISE_P`** ∈ `[0, 1]`   
   Probability of masking input pixels during training.
+
+### 😘 VAE-specific (only in `constants2.py`)
+- **`N_EMOJIS`** ∈ `[1,50]`  
+  Selects the amount of emojis to be loaded from `load_emojis.py`.
 
 ---

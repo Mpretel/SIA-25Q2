@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 from constants2 import *
 np.set_printoptions(threshold=np.inf)
 
@@ -48,18 +49,26 @@ def mostrar_emoji(dataset, indice):
 
 X = crear_dataset_emojis("sia-tp5-master\emojis-x1-32x32", n_emojis=N_EMOJIS, resolucion=(32, 32))
 
-# mostrar_emoji(X, 0)
-# mostrar_emoji(X, 1)
-# mostrar_emoji(X, 2)
-# mostrar_emoji(X, 3)
-# mostrar_emoji(X, 4)
-# mostrar_emoji(X, 5)
-# mostrar_emoji(X, 6)
-# mostrar_emoji(X, 7)
-# mostrar_emoji(X, 8)
-#mostrar_emoji(X, 9)
+def mostrar_grid_emojis(X, emoji_labels, resolucion=(32,32)):
+    N = len(X)
+
+    cols = math.ceil(math.sqrt(N))
+    rows = math.ceil(N / cols)
+
+    plt.figure(figsize=(cols * 1.5, rows * 1.5))
+
+    for i in range(N):
+        ax = plt.subplot(rows, cols, i + 1)
+        img = X[i].reshape(resolucion)
+        ax.imshow(img, cmap="gray_r", vmin=0, vmax=1)
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_title(emoji_labels[i], fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
 
 emoji_labels = np.array([f"E{i}" for i in range(len(X))])
+mostrar_grid_emojis(X, emoji_labels)
 
 X = X.reshape((X.shape[0], -1))
 

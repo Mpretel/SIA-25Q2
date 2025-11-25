@@ -14,11 +14,14 @@ Link to presentation: [SIA TP5 Presentation](https://docs.google.com/presentatio
 ## Contents
 
 - `ej1.py`: Implementation of an **Autoencoder**, in order to represent the binary characters of the `font.h` file into a 2D latent space, and a **Denoising Autoencoder** over the same dataset.  
+- `ej2.py`: Extension of the **Autoencoder** to a **VAE**, in order to solve the representation into a latent space of an emoji dataset (`emojis-x1-32x32`).
+- 
 - `constants1.py`: Hyperparameters for the **Autoencoder** on `ej1.py`.
+- `constants2.py`: Hyperparameters for the **VAE** on `ej2.py`.
+
 - `font.h`: Binary characters (32 7x5 patterns).
 - `load_fonts.py`: Preprocessing of the `font.h` file.
-- `ej2.py`: Extension of the **Autoencoder** to a **VAE**, in order to solve the representation into a latent space of an emoji dataset (`emojis-x1-32x32`).
-- `constants2.py`: Hyperparameters for the **VAE** on `ej2.py`.
+
 - `emojis-x1-32x32`: Folder with emoji PNG files (50 32x32 RGB emojis).
 - `load_emojis.py`: Preprocessing of the files in `emojis-x1-32x32`.
 
@@ -142,7 +145,7 @@ They control model architecture, optimization settings, training length, and opt
 - **`USE_DENOISING`** ∈ `{TRUE, FALSE}`  
   Enables the denoising autoencoder mode.
 
-- **`NOISE_P`** ∈ `[0, 1]`
+- **`NOISE_P`** ∈ `[0, 1]`   
   Probability of masking input pixels during training.
 
 ---

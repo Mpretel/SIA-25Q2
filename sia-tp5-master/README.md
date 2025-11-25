@@ -2,7 +2,7 @@
 
 This repository contains the implementation for the fifth practical assignment (TP5) of the **Intelligent Systems (SIA)** course, focused on **Deep Learning**.  
 
-It includes implementations of an **Autoencoder** applied to the dataset `font.h` and a **Variational Autoencoder (VAE)** applied to the dataset `emojis-x1-32x32`.
+It includes implementations of an **Autoencoder** applied to the dataset `font.h` and a **Variational Autoencoder (VAE)** applied to the emojis contained in `emojis-x1-32x32`.
 
 Link to presentation: [SIA TP5 Presentation](https://docs.google.com/presentation/d/15e1gVpKAW40LqRVmYUw9BkpukomsZvxLQNi3eNKM6BM/edit?usp=sharing)
 
@@ -15,7 +15,7 @@ Link to presentation: [SIA TP5 Presentation](https://docs.google.com/presentatio
 
 - `ej1.py`: Implementation of an **Autoencoder**, in order to represent the binary characters of the `font.h` file into a 2D latent space, and a **Denoising Autoencoder** over the same dataset.  
 - `ej2.py`: Extension of the **Autoencoder** to a **VAE**, in order to solve the representation into a latent space of an emoji dataset (`emojis-x1-32x32`).
-- 
+
 - `constants1.py`: Hyperparameters for the **Autoencoder** on `ej1.py`.
 - `constants2.py`: Hyperparameters for the **VAE** on `ej2.py`.
 

@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from constants2 import *
+from load_emojis import X, emoji_labels
 
 
 SEED = 42
@@ -72,33 +73,43 @@ class MLP:
         return self.final_output
 
     def backward(self, X, y=None, output=None, grad_output=None):
-        batch_size = X.shape[0]
-
         if grad_output is None:
-            # === Caso decoder con BCE ===
-            # grad_output = dL/da = (sigmoid(a) - y)
-            d_output = (output - y)               # <-- BCE + sigmoid deriv correcta
+            # backward normal con target
+            error = y - output
+            d_output = -error
+            #d_output = error * self.activation_deriv(self.final_input)
         else:
-            # === Caso encoder: grad externo ===
+            # backward con gradiente externo (para el encoder)
             d_output = grad_output * self.activation_deriv(self.final_input)
 
         d_hidden = d_output.dot(self.W_output.T) * self.activation_deriv(self.hidden_input)
-
-        # Gradientes de pesos
-        grad_W_output = self.hidden_output.T.dot(d_output) / batch_size
-        grad_W_hidden = X.T.dot(d_hidden) / batch_size
-
-        # === Update ===
+        grad_W_output = self.hidden_output.T.dot(d_output)
+        grad_W_hidden = X.T.dot(d_hidden)
         if self.optimizer == 'gd':
-            self.W_output -= self.learning_rate * grad_W_output
-            self.W_hidden -= self.learning_rate * grad_W_hidden
-        else:
-            raise NotImplementedError("Solo GD en esta versión simplificada")
-
-        # grad wrt input
+            self.W_output += self.learning_rate * grad_W_output
+            self.W_hidden += self.learning_rate * grad_W_hidden
+        elif self.optimizer == 'momentum':
+            self.vW_output = self.beta * self.vW_output + (1 - self.beta) * grad_W_output
+            self.vW_hidden = self.beta * self.vW_hidden + (1 - self.beta) * grad_W_hidden
+            self.W_output += self.learning_rate * self.vW_output
+            self.W_hidden += self.learning_rate * self.vW_hidden
+        elif self.optimizer == 'adam':
+            self.iteration += 1
+            self.mW_output = self.beta1 * self.mW_output + (1 - self.beta1) * grad_W_output
+            self.vW_output_adam = self.beta2 * self.vW_output_adam + (1 - self.beta2) * (grad_W_output**2)
+            self.mW_hidden = self.beta1 * self.mW_hidden + (1 - self.beta1) * grad_W_hidden
+            self.vW_hidden_adam = self.beta2 * self.vW_hidden_adam + (1 - self.beta2) * (grad_W_hidden**2)
+            m_hat_out = self.mW_output / (1 - self.beta1**self.iteration)
+            v_hat_out = self.vW_output_adam / (1 - self.beta2**self.iteration)
+            m_hat_hid = self.mW_hidden / (1 - self.beta1**self.iteration)
+            v_hat_hid = self.vW_hidden_adam / (1 - self.beta2**self.iteration)
+            self.W_output += self.learning_rate * m_hat_out / (np.sqrt(v_hat_out) + self.epsilon_adam)
+            self.W_hidden += self.learning_rate * m_hat_hid / (np.sqrt(v_hat_hid) + self.epsilon_adam)
+        
+        # gradiente respecto a la entrada de la red
         d_input = d_hidden.dot(self.W_hidden.T)
-        return d_input
 
+        return d_input
 
     def predict(self, X):
         return self.forward(X)
@@ -111,7 +122,6 @@ encoder = MLP(n_input=32*32 + 1, n_hidden=HIDDEN, n_output=LATENT_DIM * 2,
 decoder = MLP(n_input=LATENT_DIM + 1, n_hidden=HIDDEN, n_output=32*32,
               activation_function="sigmoid", learning_rate=LR, optimizer=OPTIMIZER)
 
-from load_emojis import X, emoji_labels
 
 data = (X + 1) / 2 # Escalados para usar sigmoid
 

@@ -45,7 +45,7 @@ def mostrar_emoji(dataset, indice):
     plt.axis("off")
     plt.show()
 
-X = crear_dataset_emojis("sia-tp5-master\emojis-x1-32x32", n_emojis=5, resolucion=(32, 32))
+X = crear_dataset_emojis("emojis-x1-32x32", n_emojis=5, resolucion=(32, 32))
 
 # mostrar_emoji(X, 0)
 # mostrar_emoji(X, 1)

@@ -236,6 +236,52 @@ plt.ylabel("z2")
 plt.grid()
 plt.show()
 
+
+
+
+# ============================
+#  GRID VARIACIONAL 2D
+# ============================
+
+#  Reconstrucciones de patrones
+def show_pattern(vec35, ax, title=None):
+    mat = vec35.reshape(32, 32)
+    ax.imshow(mat, cmap='gray_r', vmin=0, vmax=1)
+    ax.set_xticks([]); ax.set_yticks([])
+    if title:
+        ax.set_title(title, fontsize=9)
+
+zmin = -4
+zmax = 4
+
+nx, ny = 10, 10
+grid = []
+for i in range(ny):
+    for j in range(nx):
+        gx = zmin + (zmax - zmin) * j / (nx - 1)
+        gy = zmin + (zmax - zmin) * i / (ny - 1)
+        grid.append([gx,gy])
+grid = np.array(grid)
+
+grid_bias = np.hstack([grid, np.ones((grid.shape[0],1))])
+gen = decoder.predict(grid_bias)
+
+gen = (gen >= 0.5).astype(float)
+
+plt.figure(figsize=(10,10))
+for i in range(nx*ny):
+    ax = plt.subplot(ny,nx,i+1)
+    show_pattern(gen[i], ax)
+plt.suptitle("Grid del espacio latente (VAE)")
+plt.show()
+
+
+
+# ============================
+#  Entrar puntos z manualmente
+# ============================
+
+
 N_SAMPLES = 20
 
 # sampleo de z ~ N(0, I)
@@ -272,39 +318,3 @@ for j in range(N_SAMPLES):
     plt.grid()
     plt.show()
     
-
-# ============================
-#  GRID VARIACIONAL 2D
-# ============================
-
-# #  Reconstrucciones de patrones
-# def show_pattern(vec35, ax, title=None):
-#     mat = vec35.reshape(32, 32)
-#     ax.imshow(mat, cmap='gray_r', vmin=0, vmax=1)
-#     ax.set_xticks([]); ax.set_yticks([])
-#     if title:
-#         ax.set_title(title, fontsize=9)
-
-# zmin = z.min(axis=0) - 1
-# zmax = z.max(axis=0) + 1
-
-# nx, ny = 8, 8
-# grid = []
-# for i in range(ny):
-#     for j in range(nx):
-#         gx = zmin[0] + (zmax[0]-zmin[0])*j/(nx-1)
-#         gy = zmin[1] + (zmax[1]-zmin[1])*i/(ny-1)
-#         grid.append([gx,gy])
-# grid = np.array(grid)
-
-# grid_bias = np.hstack([grid, np.ones((grid.shape[0],1))])
-# gen = decoder.predict(grid_bias)
-
-# gen = (gen >= 0.5).astype(float)
-
-# plt.figure(figsize=(6,6))
-# for i in range(nx*ny):
-#     ax = plt.subplot(ny,nx,i+1)
-#     show_pattern(gen[i], ax)
-# plt.suptitle("Grid del espacio latente (VAE)")
-# plt.show()

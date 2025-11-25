@@ -104,12 +104,12 @@ Files **`ej2-1d.py`** and **`ej2-2d.py`** implement a **Variational Autoencoder*
 **Result:**  
 The VAE learns a structured latent space that enables interpolation and generation of new character patterns.
 
+---
+
 ### ⚙️ Hyperparameters — `constants1.py` and `constants2.py`
 
 These files define the hyperparameters used for the **Autoencoder** (`constants1.py`) and for the **VAE** (`constants2.py`).  
 They control model architecture, optimization settings, training length, and optional noise injection.
-
----
 
 ### Main hyperparameters
 
@@ -154,4 +154,3 @@ They control model architecture, optimization settings, training length, and opt
 - **`N_EMOJIS`** ∈ `[1,50]`  
   Selects the amount of emojis to be loaded from `load_emojis.py`.
 
----

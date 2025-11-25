@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from constants2 import *
-from load_emojis import X, emoji_labels
 
 
 SEED = 42
@@ -30,7 +29,6 @@ def softsign(x):
 def softsign_derivative(x):
     return 1 / (1 + np.abs(x))**2
 
-# --- Añadir activación linear ---
 def linear(x):
     return x
 
@@ -73,26 +71,31 @@ class MLP:
         return self.final_output
 
     def backward(self, X, y=None, output=None, grad_output=None):
+        batch_size = X.shape[0]
+
         if grad_output is None:
-            # backward normal con target
-            error = y - output
-            d_output = -error
-            #d_output = error * self.activation_deriv(self.final_input)
+            # Caso decoder con BCE
+            # grad_output = dL/da = (sigmoid(a) - y)
+            d_output = (output - y)
         else:
-            # backward con gradiente externo (para el encoder)
+            # Caso encoder
             d_output = grad_output * self.activation_deriv(self.final_input)
 
         d_hidden = d_output.dot(self.W_output.T) * self.activation_deriv(self.hidden_input)
-        grad_W_output = self.hidden_output.T.dot(d_output)
-        grad_W_hidden = X.T.dot(d_hidden)
+
+        # Gradientes de pesos
+        grad_W_output = self.hidden_output.T.dot(d_output) / batch_size
+        grad_W_hidden = X.T.dot(d_hidden) / batch_size
+
+        # Update
         if self.optimizer == 'gd':
-            self.W_output += self.learning_rate * grad_W_output
-            self.W_hidden += self.learning_rate * grad_W_hidden
+            self.W_output -= self.learning_rate * grad_W_output
+            self.W_hidden -= self.learning_rate * grad_W_hidden
         elif self.optimizer == 'momentum':
             self.vW_output = self.beta * self.vW_output + (1 - self.beta) * grad_W_output
             self.vW_hidden = self.beta * self.vW_hidden + (1 - self.beta) * grad_W_hidden
-            self.W_output += self.learning_rate * self.vW_output
-            self.W_hidden += self.learning_rate * self.vW_hidden
+            self.W_output -= self.learning_rate * self.vW_output
+            self.W_hidden -= self.learning_rate * self.vW_hidden
         elif self.optimizer == 'adam':
             self.iteration += 1
             self.mW_output = self.beta1 * self.mW_output + (1 - self.beta1) * grad_W_output
@@ -103,27 +106,32 @@ class MLP:
             v_hat_out = self.vW_output_adam / (1 - self.beta2**self.iteration)
             m_hat_hid = self.mW_hidden / (1 - self.beta1**self.iteration)
             v_hat_hid = self.vW_hidden_adam / (1 - self.beta2**self.iteration)
-            self.W_output += self.learning_rate * m_hat_out / (np.sqrt(v_hat_out) + self.epsilon_adam)
-            self.W_hidden += self.learning_rate * m_hat_hid / (np.sqrt(v_hat_hid) + self.epsilon_adam)
-        
-        # gradiente respecto a la entrada de la red
-        d_input = d_hidden.dot(self.W_hidden.T)
+            self.W_output -= self.learning_rate * m_hat_out / (np.sqrt(v_hat_out) + self.epsilon_adam)
+            self.W_hidden -= self.learning_rate * m_hat_hid / (np.sqrt(v_hat_hid) + self.epsilon_adam)
 
+        # grad wrt input
+        d_input = d_hidden.dot(self.W_hidden.T)
         return d_input
+
 
     def predict(self, X):
         return self.forward(X)
     
-# --- Arquitectura VAE ---
+#rquitectura VAE
 # encoder outputs 2 * LATENT_DIM (mu and logvar concatenated)
 encoder = MLP(n_input=32*32 + 1, n_hidden=HIDDEN, n_output=LATENT_DIM * 2,
               activation_function='sigmoid', learning_rate=LR, optimizer=OPTIMIZER)
+
 # decoder takes latent dim + bias and outputs original dim (reconstruction)
 decoder = MLP(n_input=LATENT_DIM + 1, n_hidden=HIDDEN, n_output=32*32,
               activation_function="sigmoid", learning_rate=LR, optimizer=OPTIMIZER)
 
+# ============================
+# Carga de emojis
+from load_emojis import X, emoji_labels
 
-data = (X + 1) / 2 # Escalados para usar sigmoid
+data = (X + 1) / 2 # Escalado para usar sigmoid
+# ============================
 
 # Entrenamiento VAE
 best_loss = np.inf
@@ -137,40 +145,30 @@ for epoch in range(1, EPOCHS + 1):
     for batch in batches:
         x = data[batch]  # (B, D)
 
-        # bias en entrada del encoder
+        # Bias implícito en la entrada del encoder
         x_bias = np.hstack([x, np.ones((x.shape[0], 1))])  # (B, D+1)
 
-        # === Encoder forward: obtiene mu y logvar concatenados ===
+        # Encoder forward: obtiene mu y logvar concatenados
         enc_out = encoder.forward(x_bias)  # (B, 2*LATENT_DIM)
         mu = enc_out[:, :LATENT_DIM]
         logvar = enc_out[:, LATENT_DIM:]
 
-        # reparameterization
+        # Reparameterization trick
         eps = np.random.normal(size=mu.shape)
         sigma = np.exp(0.5 * logvar)
         z = mu + sigma * eps  # (B, LATENT_DIM)
 
-        # añadir bias al z antes del decoder
+        # Añadir bias al z antes del decoder
         z_bias = np.hstack([z, np.ones((z.shape[0], 1))])  # (B, LATENT_DIM+1)
 
-        # === Decoder forward ===
+        # Decoder forward
         recon = decoder.forward(z_bias)  # (B, D)
 
-        # === Pérdidas por muestra ===
-        # Reconstrucción (MSE)
-        eps_num = 1e-9
-
         # Binary Cross Entropy por muestra
-        bce_per_sample = np.mean(
-            -x * np.log(recon + eps_num) - (1 - x) * np.log(1 - recon + eps_num),
-            axis=1
-        )
+        bce_per_sample = np.mean(-x * np.log(recon) - (1 - x) * np.log(1 - recon), axis=1)
 
         # KL por muestra
-        kl_per_sample = 0.5 * np.sum(
-            mu**2 + np.exp(logvar) - logvar - 1,
-            axis=1
-        )
+        kl_per_sample = 0.5 * np.sum(mu**2 + np.exp(logvar) - logvar - 1, axis=1)
 
         batch_bce = np.mean(bce_per_sample)
         batch_kl  = np.mean(kl_per_sample)
@@ -206,7 +204,7 @@ for epoch in range(1, EPOCHS + 1):
     if epoch % PRINT_EVERY == 0 or epoch == 1:
         print(f"Epoch {epoch:4d} | Loss={epoch_loss:.6f} | KL={batch_kl:.6f}")
 
-    # Early stopping (igual que antes)
+    # Early stopping
     if epoch_loss < best_loss - 1e-6:
         best_loss = epoch_loss
         best_encoder = encoder
@@ -218,7 +216,7 @@ for epoch in range(1, EPOCHS + 1):
         print("Early stopping.")
         break
 
-# usar mejores pesos
+# Usar mejores pesos
 encoder, decoder = best_encoder, best_decoder
 
 # Obtener mu del encoder
@@ -226,28 +224,58 @@ data_bias = np.hstack([data, np.ones((data.shape[0], 1))])
 enc_out = encoder.predict(data_bias)
 mu = enc_out[:, :LATENT_DIM]
 
-#Plot espacio latente
+# # Plot espacio latente (con mu)
 plt.figure(figsize=(6,6))
 plt.scatter(mu[:,0], mu[:,1])
 for i in range(len(emoji_labels)):
     plt.text(mu[i,0], mu[i,1], emoji_labels[i], fontsize=9)
-plt.colorbar()
 plt.title("Espacio Latente (mu)")
 plt.xlabel("z1")
 plt.ylabel("z2")
 plt.grid()
 plt.show()
 
+# ============================
+#  GRID VARIACIONAL 2D
+# ============================
+
+# #  Reconstrucciones de patrones
+def show_pattern(vec35, ax, title=None):
+    mat = vec35.reshape(32, 32)
+    ax.imshow(mat, cmap='gray_r', vmin=0, vmax=1)
+    ax.set_xticks([]); ax.set_yticks([])
+    if title:
+        ax.set_title(title, fontsize=9)
+
+zmin = -80
+zmax = 80
+
+nx, ny = 15, 10
+grid = []
+for i in range(ny):
+    for j in range(nx):
+        gx = zmin + (zmax - zmin) * j / (nx - 1)
+        gy = zmin + (zmax - zmin) * i / (ny - 1)
+        grid.append([gx,gy])
+grid = np.array(grid)
+
+grid_bias = np.hstack([grid, np.ones((grid.shape[0],1))])
+gen = decoder.predict(grid_bias)
+
+gen = (gen >= 0.5).astype(float)
+
+plt.figure(figsize=(10,10))
+for i in range(nx*ny):
+    ax = plt.subplot(ny,nx,i+1)
+    show_pattern(gen[i], ax)
+plt.suptitle("Grid del espacio latente (VAE)")
+plt.show()
+
+# ============================
+#  Entrar puntos z manualmente
+# ============================
+
 N_SAMPLES = 20
-
-# sampleo de z ~ N(0, I)
-
-#z = mu+sigma*np.random.normal(N_SAMPLES, LATENT_DIM)
-
-# z = np.random.normal(loc=mu, scale=sigma, size=(N_SAMPLES, LATENT_DIM))
-
-# agregar bias
-
 
 for j in range(N_SAMPLES):
     z1 = input("z1: ")
@@ -257,7 +285,7 @@ for j in range(N_SAMPLES):
 
     samples = decoder.predict(z_bias)   # (N, D)
 
-# si querés binarizar (por prob 0.5):
+# Binarizar (por prob 0.5):
     samples_bin = (samples > 0.5).astype(np.float32)
     plt.imshow(samples_bin.reshape(32,32), cmap='gray')
     plt.title(f"Sample {j}")
@@ -274,39 +302,3 @@ for j in range(N_SAMPLES):
     plt.grid()
     plt.show()
     
-
-# ============================
-#  GRID VARIACIONAL 2D
-# ============================
-
-# #  Reconstrucciones de patrones
-# def show_pattern(vec35, ax, title=None):
-#     mat = vec35.reshape(32, 32)
-#     ax.imshow(mat, cmap='gray_r', vmin=0, vmax=1)
-#     ax.set_xticks([]); ax.set_yticks([])
-#     if title:
-#         ax.set_title(title, fontsize=9)
-
-# zmin = z.min(axis=0) - 1
-# zmax = z.max(axis=0) + 1
-
-# nx, ny = 8, 8
-# grid = []
-# for i in range(ny):
-#     for j in range(nx):
-#         gx = zmin[0] + (zmax[0]-zmin[0])*j/(nx-1)
-#         gy = zmin[1] + (zmax[1]-zmin[1])*i/(ny-1)
-#         grid.append([gx,gy])
-# grid = np.array(grid)
-
-# grid_bias = np.hstack([grid, np.ones((grid.shape[0],1))])
-# gen = decoder.predict(grid_bias)
-
-# gen = (gen >= 0.5).astype(float)
-
-# plt.figure(figsize=(6,6))
-# for i in range(nx*ny):
-#     ax = plt.subplot(ny,nx,i+1)
-#     show_pattern(gen[i], ax)
-# plt.suptitle("Grid del espacio latente (VAE)")
-# plt.show()

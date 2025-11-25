@@ -222,25 +222,74 @@ encoder, decoder = best_encoder, best_decoder
 # Obtener mu del encoder
 data_bias = np.hstack([data, np.ones((data.shape[0], 1))])
 enc_out = encoder.predict(data_bias)
-mu = enc_out[:, :LATENT_DIM]
+# mu = enc_out[:, :LATENT_DIM]
 
-# Plot espacio latente (con mu)
-plt.figure(figsize=(6,6))
-plt.scatter(mu[:,0], mu[:,1])
+# # Plot espacio latente (con mu)
+# plt.figure(figsize=(6,6))
+# plt.scatter(mu[:,0], mu[:,1])
+# for i in range(len(emoji_labels)):
+#     plt.text(mu[i,0], mu[i,1], emoji_labels[i], fontsize=9)
+# plt.title("Espacio Latente (mu)")
+# plt.xlabel("z1")
+# plt.ylabel("z2")
+# plt.grid()
+# plt.show()
+
+
+## Plot 1 D
+
+mu = enc_out[:, 0]   # (N,)
+
+plt.figure(figsize=(8,2))
+plt.scatter(mu, np.zeros_like(mu), s=40)
+plt.yticks([])  # ocultar eje y
 for i in range(len(emoji_labels)):
-    plt.text(mu[i,0], mu[i,1], emoji_labels[i], fontsize=9)
-plt.colorbar()
-plt.title("Espacio Latente (mu)")
-plt.xlabel("z1")
-plt.ylabel("z2")
-plt.grid()
+    plt.text(mu[i], np.zeros(len(mu))[i], emoji_labels[i], fontsize=9)
+plt.xlabel("Latent variable z")
+plt.title("Espacio Latente 1D")
+plt.grid(True, axis='x')
 plt.show()
-
 
 
 
 # ============================
 #  GRID VARIACIONAL 2D
+# ============================
+
+# #  Reconstrucciones de patrones
+# def show_pattern(vec35, ax, title=None):
+#     mat = vec35.reshape(32, 32)
+#     ax.imshow(mat, cmap='gray_r', vmin=0, vmax=1)
+#     ax.set_xticks([]); ax.set_yticks([])
+#     if title:
+#         ax.set_title(title, fontsize=9)
+
+# zmin = -80
+# zmax = 80
+
+# nx, ny = 15, 10
+# grid = []
+# for i in range(ny):
+#     for j in range(nx):
+#         gx = zmin + (zmax - zmin) * j / (nx - 1)
+#         gy = zmin + (zmax - zmin) * i / (ny - 1)
+#         grid.append([gx,gy])
+# grid = np.array(grid)
+
+# grid_bias = np.hstack([grid, np.ones((grid.shape[0],1))])
+# gen = decoder.predict(grid_bias)
+
+# gen = (gen >= 0.5).astype(float)
+
+# plt.figure(figsize=(10,10))
+# for i in range(nx*ny):
+#     ax = plt.subplot(ny,nx,i+1)
+#     show_pattern(gen[i], ax)
+# plt.suptitle("Grid del espacio latente (VAE)")
+# plt.show()
+
+# ============================
+#  GRID VARIACIONAL 1D
 # ============================
 
 #  Reconstrucciones de patrones
@@ -251,16 +300,14 @@ def show_pattern(vec35, ax, title=None):
     if title:
         ax.set_title(title, fontsize=9)
 
-zmin = -4
-zmax = 4
+zmin = -15
+zmax = 15
 
-nx, ny = 10, 10
+nx = 10
 grid = []
-for i in range(ny):
-    for j in range(nx):
-        gx = zmin + (zmax - zmin) * j / (nx - 1)
-        gy = zmin + (zmax - zmin) * i / (ny - 1)
-        grid.append([gx,gy])
+for j in range(nx):
+    gx = zmin + (zmax - zmin) * j / (nx - 1)
+    grid.append([gx])
 grid = np.array(grid)
 
 grid_bias = np.hstack([grid, np.ones((grid.shape[0],1))])
@@ -268,13 +315,12 @@ gen = decoder.predict(grid_bias)
 
 gen = (gen >= 0.5).astype(float)
 
-plt.figure(figsize=(10,10))
-for i in range(nx*ny):
-    ax = plt.subplot(ny,nx,i+1)
+plt.figure(figsize=(2*nx, 2))
+for i in range(nx):
+    ax = plt.subplot(1, nx, i + 1)
     show_pattern(gen[i], ax)
-plt.suptitle("Grid del espacio latente (VAE)")
+plt.suptitle("Grid 1D del espacio latente (VAE)")
 plt.show()
-
 
 
 # ============================
@@ -301,7 +347,7 @@ for j in range(N_SAMPLES):
 
     samples = decoder.predict(z_bias)   # (N, D)
 
-# si querés binarizar (por prob 0.5):
+# Binarizar (por prob 0.5):
     samples_bin = (samples > 0.5).astype(np.float32)
     plt.imshow(samples_bin.reshape(32,32), cmap='gray')
     plt.title(f"Sample {j}")

@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+from constants2 import *
 np.set_printoptions(threshold=np.inf)
 
 def crear_dataset_emojis(carpeta, n_emojis, resolucion=(32, 32), threshold=128, random_state=None):
@@ -45,13 +46,18 @@ def mostrar_emoji(dataset, indice):
     plt.axis("off")
     plt.show()
 
-X = crear_dataset_emojis("emojis-x1-32x32", n_emojis=5, resolucion=(32, 32))
+X = crear_dataset_emojis("sia-tp5-master\emojis-x1-32x32", n_emojis=N_EMOJIS, resolucion=(32, 32))
 
 # mostrar_emoji(X, 0)
 # mostrar_emoji(X, 1)
 # mostrar_emoji(X, 2)
 # mostrar_emoji(X, 3)
 # mostrar_emoji(X, 4)
+# mostrar_emoji(X, 5)
+# mostrar_emoji(X, 6)
+# mostrar_emoji(X, 7)
+# mostrar_emoji(X, 8)
+#mostrar_emoji(X, 9)
 
 emoji_labels = np.array([f"E{i}" for i in range(len(X))])
 

@@ -79,19 +79,19 @@ The file **`ej2.py`** implements a **Variational Autoencoder**, a generative neu
 1. **Probabilistic encoder**:
    - Outputs the latent mean \( \mu(x) \) and log-variance \( \log \sigma^2(x) \).
    - Uses the **reparameterization trick**  
-     \[
+     $\[
      z = \mu + \sigma \odot \varepsilon,\qquad \varepsilon \sim \mathcal{N}(0, I)
-     \]
+     \]$
      to sample latent vectors while keeping gradients.
 2. **Decoder**:
-   - Maps latent vectors \( z \) back to the 35-pixel reconstructed pattern.
+   - Maps latent vectors $\( z \)$ back to the 35-pixel reconstructed pattern.
 3. **VAE loss**:
    Combines:
    - **Reconstruction loss** (BCE), and  
    - **KL divergence**  
-     \[
+     $\[
      D_{\text{KL}}(q(z|x)\,\|\,\mathcal{N}(0,I)).
-     \]
+     \]$
 4. **Training**:
    - Joint optimization of reconstruction + latent regularization.
 5. **Visualization**:
